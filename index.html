@@ -865,32 +865,37 @@ function renderEcoSignals() {
 // ── Particle Animation ──
 let particleId = 0;
 function spawnParticle(sourceId, targetId, color, type) {
-  const s = agents.find(a => a.id === sourceId);
-  const t = agents.find(a => a.id === targetId);
-  if (!s || !t) return;
   const p = {
-    id: ++particleId, x: s.x, y: s.y,
-    sx: s.x, sy: s.y, tx: t.x, ty: t.y,
-    progress: 0, speed: 0.02 + Math.random() * 0.015,
+    id: ++particleId, x: 0, y: 0,
+    sourceId, targetId,
+    progress: 0,
+    speed: 0.012 + Math.random() * 0.018,
     color, type
   };
   particles.push(p);
 }
 
+// Continuous ambient particles on active links
+function spawnAmbientParticles() {
+  links.forEach(l => {
+    if (Math.random() < 0.3) {
+      const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+      const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+      spawnParticle(srcId, tgtId, WORK_COLORS[l.work] || '#555', 'ambient');
+      if (Math.random() < 0.4) spawnParticle(tgtId, srcId, WORK_COLORS[l.work] || '#555', 'ambient');
+    }
+  });
+}
+
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    // Re-read target positions (agents move)
-    const t = agents.find(a => {
-      const link = links.find(l =>
-        (l.source.id === agents.find(aa => aa.x === p.sx && aa.y === p.sy)?.id && l.target.id === a.id) ||
-        (l.target.id === agents.find(aa => aa.x === p.sx && aa.y === p.sy)?.id && l.source.id === a.id)
-      );
-      return link;
-    });
+    const src = agents.find(a => a.id === p.sourceId);
+    const tgt = agents.find(a => a.id === p.targetId);
+    if (!src || !tgt) { particles.splice(i, 1); continue; }
     p.progress += p.speed;
-    p.x = p.sx + (p.tx - p.sx) * p.progress;
-    p.y = p.sy + (p.ty - p.sy) * p.progress;
+    p.x = src.x + (tgt.x - src.x) * p.progress;
+    p.y = src.y + (tgt.y - src.y) * p.progress;
     if (p.progress >= 1) {
       particles.splice(i, 1);
     }
@@ -898,115 +903,147 @@ function updateParticles() {
 }
 
 // ── Scenario Engine ──
-let eventQueue = [];
-let nextEventTime = 3;
+let nextEventTime = 0.5;
 let sprintIdCounter = 0;
+let completedCount = 0;
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 function findAgentForCraft(crafts, excludeId) {
   const matches = agents.filter(a => a.id !== excludeId && a.status !== 'executing' && crafts.some(c => a.craft.includes(c)));
-  return matches.length ? pickRandom(matches) : pickRandom(agents.filter(a => a.id !== excludeId));
+  return matches.length ? pickRandom(matches) : pickRandom(agents.filter(a => a.id !== excludeId && a.status !== 'executing'));
 }
 
 function scheduleNextEvent() {
-  const delay = 4 + Math.random() * 8; // 4-12 seconds between events
-  nextEventTime = simTime + delay;
+  nextEventTime = simTime + 1.5 + Math.random() * 3.5;
+}
+
+function completeSprint(sprint) {
+  const agent = agents.find(a => a.id === sprint.executorId);
+  if (agent) { agent.status = 'reviewing'; setTimeout(() => { if (agent.status === 'reviewing') agent.status = 'idle'; }, 2000); }
+  sprintArtifacts = sprintArtifacts.filter(a => a.id !== sprint.id);
+  links = links.filter(l => l.sprintId !== sprint.id);
+  sim.force('link', d3.forceLink(links).id(d => d.id).distance(150));
+  sim.alpha(0.15).restart();
+  logEvent(sprint.executorId, 'synthesis', `completed "${sprint.title}" — proof committed`);
+  agents.forEach(a => { if (a.id !== sprint.executorId) spawnParticle(sprint.executorId, a.id, '#8aba8a', 'completion'); });
+  completedCount++;
+  const fill = Math.min(95, 30 + completedCount * 5);
+  document.getElementById('roadmap-fill').style.width = fill + '%';
+}
+
+function proposeSprint() {
+  const template = pickRandom(SPRINT_POOL);
+  const proposer = findAgentForCraft(template.crafts);
+  if (!proposer) return;
+  const executor = findAgentForCraft(template.crafts, proposer.id);
+  if (!executor) return;
+  const sprintId = 's' + (++sprintIdCounter);
+
+  proposer.status = 'proposing';
+  logEvent(proposer.id, 'proposal', `"${template.title}" — trigger: ${template.trigger}`);
+  spawnParticle(proposer.id, executor.id, WORK_COLORS[template.work], 'proposal');
+
+  setTimeout(() => {
+    if (proposer.status === 'proposing') proposer.status = 'idle';
+    executor.status = 'executing';
+    executor.currentSprint = sprintId;
+
+    const sprint = {
+      id: sprintId, title: template.title,
+      executorId: executor.id, proposerId: proposer.id,
+      work: template.work, layers: template.layers,
+      startTime: simTime,
+      duration: 12 + Math.random() * 18 // auto-complete after 12-30s
+    };
+    activeSprints.push(sprint);
+
+    const link = { id: 'l-' + sprintId, source: proposer, target: executor, work: template.work, sprintId };
+    links.push(link);
+    sim.force('link', d3.forceLink(links).id(d => d.id).distance(150));
+    sim.alpha(0.2).restart();
+
+    sprintArtifacts.push({ id: sprintId, title: template.title, agentId: executor.id, layers: template.layers, orbitAngle: Math.random() * Math.PI * 2 });
+    logEvent(executor.id, 'negotiation', `accepted "${template.title}" — executing`);
+  }, 800);
 }
 
 function generateEvent() {
-  const roll = Math.random();
-
-  if (roll < 0.15 && activeSprints.length > 0) {
-    // Complete a sprint
-    const sprint = activeSprints.shift();
-    const agent = agents.find(a => a.id === sprint.executorId);
-    if (agent) {
-      agent.status = 'idle';
-      agent.currentSprint = null;
+  // Auto-complete mature sprints
+  for (let i = activeSprints.length - 1; i >= 0; i--) {
+    const s = activeSprints[i];
+    if (simTime - s.startTime > s.duration) {
+      activeSprints.splice(i, 1);
+      completeSprint(s);
+      return;
     }
-    sprintArtifacts = sprintArtifacts.filter(a => a.id !== sprint.id);
-    // Remove link
-    links = links.filter(l => l.sprintId !== sprint.id);
-    sim.force('link', d3.forceLink(links).id(d => d.id).distance(160));
-    sim.alpha(0.2).restart();
-    logEvent(sprint.executorId, 'synthesis', `completed "${sprint.title}" — proof committed`);
-    // Completion burst particles
-    agents.forEach(a => { if (a.id !== sprint.executorId) spawnParticle(sprint.executorId, a.id, '#8aba8a', 'completion'); });
-    // Update roadmap
-    const fill = Math.min(95, 35 + activeSprints.length * 3 + Math.random() * 10);
-    document.getElementById('roadmap-fill').style.width = fill + '%';
-    return;
   }
 
-  if (roll < 0.35) {
-    // Heartbeat / sensing
-    const agent = pickRandom(agents);
-    agent.status = 'sensing';
-    setTimeout(() => { if (agent.status === 'sensing') agent.status = 'idle'; }, 3000);
-    logEvent(agent.id, 'discovery', `heartbeat — ${agent.archetype}, capacity ${agent.capacity}%, ${agent.craft.join(' × ')}`);
-    // Sometimes mutate eco signals
-    if (Math.random() < 0.3) {
-      const sig = pickRandom(ECO_SIGNALS);
-      const trends = ['↑', '↓', '—'];
-      sig.trend = pickRandom(trends);
-      if (Math.random() < 0.2) sig.status = pickRandom(['normal', 'watch', 'alert']);
-      renderEcoSignals();
-      if (sig.status === 'alert') {
-        logEvent(agent.id, 'sensing', `ecological alert: ${sig.name} — ${sig.value} ${sig.trend}`);
+  const roll = Math.random();
+  const executing = agents.filter(a => a.status === 'executing').length;
+
+  if (roll < 0.30 && activeSprints.length < 4 && executing < 3) {
+    // Propose a new sprint
+    proposeSprint();
+  } else if (roll < 0.55) {
+    // Heartbeat / sensing sweep
+    const agent = pickRandom(agents.filter(a => a.status === 'idle') || agents);
+    if (agent) {
+      agent.status = 'sensing';
+      setTimeout(() => { if (agent.status === 'sensing') agent.status = 'idle'; }, 2000);
+      logEvent(agent.id, 'discovery', `heartbeat — ${agent.archetype} · ${agent.craft.join(' × ')} · capacity ${agent.capacity}%`);
+      // Spawn sensing particles to 2 random agents
+      const others = agents.filter(a => a.id !== agent.id);
+      for (let k = 0; k < 2; k++) {
+        spawnParticle(agent.id, pickRandom(others).id, '#06b6d4', 'sensing');
       }
     }
-    return;
-  }
-
-  if (roll < 0.55 && activeSprints.length < 4) {
-    // Propose + claim a sprint
-    const template = pickRandom(SPRINT_POOL);
-    const proposer = findAgentForCraft(template.crafts);
-    const executor = findAgentForCraft(template.crafts, proposer.id);
-    const sprintId = 's' + (++sprintIdCounter);
-
-    proposer.status = 'proposing';
-    logEvent(proposer.id, 'proposal', `"${template.title}" — triggered by: ${template.trigger}`);
-
-    setTimeout(() => {
-      proposer.status = 'idle';
-      executor.status = 'executing';
-      executor.currentSprint = sprintId;
-
-      const sprint = { id: sprintId, title: template.title, executorId: executor.id, proposerId: proposer.id, work: template.work, layers: template.layers };
-      activeSprints.push(sprint);
-
-      // Add link
-      const link = { id: 'l-' + sprintId, source: proposer, target: executor, work: template.work, sprintId };
-      links.push(link);
-      sim.force('link', d3.forceLink(links).id(d => d.id).distance(160));
-      sim.alpha(0.3).restart();
-
-      // Sprint artifact
-      sprintArtifacts.push({ id: sprintId, title: template.title, agentId: executor.id, layers: template.layers, orbitAngle: Math.random() * Math.PI * 2 });
-
-      logEvent(executor.id, 'negotiation', `claimed "${template.title}" — executing`);
-      spawnParticle(proposer.id, executor.id, WORK_COLORS[template.work], 'claim');
-    }, 2000);
-    return;
-  }
-
-  if (activeSprints.length > 0) {
-    // Progress update
-    const sprint = pickRandom(activeSprints);
-    const agent = agents.find(a => a.id === sprint.executorId);
-    if (agent) {
-      logEvent(agent.id, 'execution', `progress on "${sprint.title}"`);
-      // Send particle to proposer
-      spawnParticle(sprint.executorId, sprint.proposerId, WORK_COLORS[sprint.work], 'progress');
+    // Mutate eco signals
+    if (Math.random() < 0.4) {
+      const sig = pickRandom(ECO_SIGNALS);
+      sig.trend = pickRandom(['↑', '↓', '—']);
+      if (Math.random() < 0.25) sig.status = pickRandom(['normal', 'watch', 'alert']);
+      renderEcoSignals();
+      if (sig.status === 'alert') {
+        logEvent(agent?.id || 'nou', 'sensing', `ecological alert: ${sig.name} — ${sig.value} ${sig.trend}`);
+      }
     }
-    return;
+  } else if (activeSprints.length > 0) {
+    // Progress update on a random active sprint
+    const sprint = pickRandom(activeSprints);
+    const elapsed = simTime - sprint.startTime;
+    const pct = Math.min(95, Math.floor((elapsed / sprint.duration) * 100));
+    logEvent(sprint.executorId, 'execution', `progress on "${sprint.title}" — ${pct}%`);
+    spawnParticle(sprint.executorId, sprint.proposerId, WORK_COLORS[sprint.work], 'progress');
+    // Also spawn particles from executor to random other agent
+    const other = pickRandom(agents.filter(a => a.id !== sprint.executorId));
+    if (other) spawnParticle(sprint.executorId, other.id, WORK_COLORS[sprint.work], 'progress');
+  } else {
+    // Idle chatter / cross-agent communication
+    const a = pickRandom(agents);
+    const b = pickRandom(agents.filter(x => x.id !== a.id));
+    if (a && b) {
+      spawnParticle(a.id, b.id, '#555', 'ambient');
+      logEvent(a.id, 'discovery', `scanning — ${pickRandom(ECO_SIGNALS).name}`);
+    }
   }
+}
 
-  // Default: heartbeat
-  const agent = pickRandom(agents);
-  logEvent(agent.id, 'discovery', `heartbeat — scanning ecological signals`);
+// ── Warm Start: seed initial activity ──
+function warmStart() {
+  // Fire several heartbeats immediately
+  agents.forEach((a, i) => {
+    setTimeout(() => {
+      a.status = 'sensing';
+      logEvent(a.id, 'discovery', `online — ${a.archetype} · ${a.craft.join(' × ')} · capacity ${a.capacity}%`);
+      const other = agents[(i + 1) % agents.length];
+      spawnParticle(a.id, other.id, '#06b6d4', 'sensing');
+      setTimeout(() => { if (a.status === 'sensing') a.status = 'idle'; }, 1500);
+    }, i * 400);
+  });
+  // Seed 2 sprints at T+2s and T+3.5s
+  setTimeout(() => proposeSprint(), 2000);
+  setTimeout(() => proposeSprint(), 3500);
 }
 
 // ── Solar Cycle (S dimension) ──
@@ -1062,6 +1099,11 @@ function mainLoop(now) {
   // Update particles
   updateParticles();
 
+  // Ambient particles on active links (every ~0.8s)
+  if (Math.floor(simTime * 1.25) !== Math.floor((simTime - dt) * 1.25)) {
+    spawnAmbientParticles();
+  }
+
   // Solar cycle
   updateSolarCycle();
 
@@ -1102,6 +1144,7 @@ document.addEventListener('keydown', e => {
 // ── Init ──
 renderEcoSignals();
 scheduleNextEvent();
+warmStart();
 requestAnimationFrame(mainLoop);
 </script>
 
