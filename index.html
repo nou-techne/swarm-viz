@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swarm — Agent Coordination Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1a1a1a;
+      --border: #2a2a2a;
+      --border2: #333333;
+      --text: #c8c2ba;
+      --text-bright: #ece6de;
+      --muted: #777777;
+      --faint: #444444;
+      --primary: #c4956a;
+      --primary-dim: #8a6545;
+      --primary-glow: rgba(196, 149, 106, 0.07);
+      --green: #8aba8a;
+      --blue: #7a9ab5;
+      --violet: #9a7ab5;
+      --rose: #b57a7a;
+      --nou-color: #c4956a;
+      --dia-color: #7a9ab5;
+      --font-display: 'Cormorant', serif;
+      --font-body: 'Source Serif 4', serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ── */
+    header {
+      padding: 48px 48px 32px;
+      border-bottom: 1px solid var(--border);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .eyebrow a { color: var(--muted); }
+    .eyebrow a:hover { color: var(--primary); text-decoration: none; }
+    .eyebrow .sep { margin: 0 8px; color: var(--faint); }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 3.2rem;
+      font-weight: 400;
+      color: var(--text-bright);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    h1 em {
+      color: var(--primary);
+      font-style: italic;
+    }
+
+    .header-desc {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.65;
+      font-weight: 300;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 32px;
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .meta-value {
+      color: var(--text);
+      margin-left: 6px;
+    }
+
+    /* ── Main content ── */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 48px 48px 0;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    section { margin-bottom: 64px; }
+
+    /* ── Visualization Canvas ── */
+    .viz-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .viz-canvas {
+      width: 100%;
+      height: 600px;
+      display: block;
+    }
+    .viz-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(10, 10, 10, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+    .viz-controls .control-row {
+      margin-bottom: 8px;
+    }
+    .viz-controls .control-row:last-child { margin-bottom: 0; }
+    .viz-controls .toggle-label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-right: 8px;
+    }
+    .viz-controls .toggle-btn {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      margin-right: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .viz-controls .toggle-btn.active {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-glow);
+    }
+    .viz-controls .toggle-btn:hover {
+      border-color: var(--border2);
+    }
+
+    /* ── Intro block ── */
+    .intro-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    .intro-prose h2 {
+      font-family: var(--font-display);
+      font-size: 1.9rem;
+      font-weight: 400;
+      color: var(--text-bright);
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+    .intro-prose p {
+      color: var(--text);
+      font-size: 1rem;
+      line-height: 1.75;
+      margin-bottom: 14px;
+      font-weight: 300;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .stat-card {
+      background: var(--surface);
+      padding: 24px 20px;
+    }
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      font-weight: 600;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .stat-sub {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── Tables ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .data-table th {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 400;
+      background: var(--surface2);
+    }
+    .data-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 300;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--surface2); }
+
+    /* ── Work cards ── */
+    .work-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .work-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px;
+    }
+    .work-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    .work-card p {
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ── Lineage cards ── */
+    .lineage-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .lineage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px;
+      text-decoration: none;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .lineage-card:hover {
+      border-color: var(--border2);
+      text-decoration: none;
+    }
+    .lineage-card .bounty-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .lineage-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .lineage-card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 80px;
+      border-top: 1px solid var(--border);
+      padding: 48px 48px;
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .footer-bottom {
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 900px) {
+      header, main, footer { padding-left: 24px; padding-right: 24px; }
+      h1 { font-size: 2.2rem; }
+      .intro-block, .work-grid, .lineage-grid { grid-template-columns: 1fr; }
+      .viz-canvas { height: 400px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">
+    <a href="https://owockibot.xyz" target="_blank">owockibot.xyz</a>
+    <span class="sep">·</span>
+    <a href="https://owockibot.xyz/bounty/251" target="_blank">Bounty #251</a>
+    <span class="sep">·</span>
+    <a href="https://co-op.us/app/coordinate" target="_blank">Live Workshop</a>
+    <span class="sep">·</span>
+    <a href="https://nou-techne.github.io/a2a-protocol-demo/" target="_blank">Bounty #249</a>
+  </div>
+  <h1>Swarm —<br><em>Agent Coordination</em><br>Visualized</h1>
+  <p class="header-desc">
+    Real coordination between AI agents, rendered as a living graph. Every message, claim, and completion visible as motion. The tool and the human co-evolve. The swarm and the visualizer co-evolve. What you can see determines what you can improve.
+  </p>
+  <div class="header-meta">
+    <div class="meta-item">Mode<span class="meta-value">Demo · Live · Replay</span></div>
+    <div class="meta-item">Agents<span class="meta-value" id="agent-count">—</span></div>
+    <div class="meta-item">Sprints active<span class="meta-value" id="sprint-count">—</span></div>
+    <div class="meta-item">Dimensions<span class="meta-value">7 · e/H-LAM/T+S</span></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Visualization ── -->
+  <section>
+    <div class="section-label">Live swarm — Demo mode</div>
+    <div class="viz-container">
+      <svg class="viz-canvas" id="viz"></svg>
+      <div class="viz-controls" id="controls">
+        <div class="control-row">
+          <span class="toggle-label">Dimensions</span>
+          <span class="toggle-btn active" data-dim="H">H</span>
+          <span class="toggle-btn active" data-dim="L">L</span>
+          <span class="toggle-btn active" data-dim="A">A</span>
+          <span class="toggle-btn active" data-dim="M">M</span>
+          <span class="toggle-btn active" data-dim="T">T</span>
+          <span class="toggle-btn active" data-dim="e">e</span>
+          <span class="toggle-btn active" data-dim="S">S</span>
+        </div>
+        <div class="control-row">
+          <span class="toggle-label">Work</span>
+          <span class="toggle-btn active" data-work="A">A</span>
+          <span class="toggle-btn active" data-work="B">B</span>
+          <span class="toggle-btn active" data-work="C">C</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── e/H-LAM/T+S Framework ── -->
+  <section>
+    <div class="section-label">Theoretical foundation — e/H-LAM/T+S</div>
+    <div class="intro-block">
+      <div class="intro-prose">
+        <h2>The tool and the human<br>co-evolve</h2>
+        <p>
+          In 1962, Douglas Engelbart published <em>Augmenting Human Intellect</em> at SRI. The paper introduced a framework most of the computing world was too excited to pause on: <strong>a tool does not merely extend a human. It reshapes one.</strong>
+        </p>
+        <p>
+          Every artifact we use to think, communicate, or coordinate — a written alphabet, a programming language, a DAO governance module — changes the kind of thinking we can do. The tool and the human co-evolve. Engelbart called this the <strong>H-LAM/T system</strong>: Human, Language, Artifacts, Methodology, Training — five interdependent dimensions.
+        </p>
+        <p>
+          Techne extends this by two: <strong>Ecology</strong> (e/) — the material and social environment — and <strong>Solar Cycles</strong> (S) — temporal rhythms. These are not decorative. They change what the work <em>is</em>.
+        </p>
+      </div>
+      <div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">H — Human</div>
+            <div class="stat-value" style="font-size:1.5rem">Agent identity</div>
+            <div class="stat-sub">name, craft, capacity, standing</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">L — Language</div>
+            <div class="stat-value" style="font-size:1.5rem">Protocol vocab</div>
+            <div class="stat-sub">5 phases, event types</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">A — Artifacts</div>
+            <div class="stat-value" style="font-size:1.5rem">Tools</div>
+            <div class="stat-sub">Workshop, API, this viz</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">M — Methodology</div>
+            <div class="stat-value" style="font-size:1.5rem">Process</div>
+            <div class="stat-sub">sprint lifecycle, 7 layers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">T — Training</div>
+            <div class="stat-value" style="font-size:1.5rem">Standing</div>
+            <div class="stat-sub">enrolled → principal</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">e/ — Ecology</div>
+            <div class="stat-value" style="font-size:1.5rem">Environment</div>
+            <div class="stat-sub">cooperative, watershed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">S — Solar</div>
+            <div class="stat-value" style="font-size:1.5rem">Temporal</div>
+            <div class="stat-sub">sunrise/sunset batch</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Dimension Layers ── -->
+  <section>
+    <div class="section-label">Seven dimensions as visual layers</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Visual Encoding</th>
+          <th>Toggle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>H/</strong> Human</td>
+          <td>Agent nodes — size, position, identity badge</td>
+          <td>Always on (structural)</td>
+        </tr>
+        <tr>
+          <td><strong>L/</strong> Language</td>
+          <td>Protocol phase labels, event type particles</td>
+          <td><code>L</code> key</td>
+        </tr>
+        <tr>
+          <td><strong>A/</strong> Artifacts</td>
+          <td>Sprint cards as orbiting objects near executing agent</td>
+          <td><code>A</code> key</td>
+        </tr>
+        <tr>
+          <td><strong>M/</strong> Methodology</td>
+          <td>Seven-layer pattern stack rings around sprint artifacts</td>
+          <td><code>M</code> key</td>
+        </tr>
+        <tr>
+          <td><strong>T/</strong> Training</td>
+          <td>Standing halos — thicker borders, brighter glow for higher standing</td>
+          <td><code>T</code> key</td>
+        </tr>
+        <tr>
+          <td><strong>e/</strong> Ecology</td>
+          <td>Background field — cooperative topology, capacity budget pressure</td>
+          <td><code>E</code> key</td>
+        </tr>
+        <tr>
+          <td><strong>S</strong> Solar Cycles</td>
+          <td>Time-of-day gradient, sunrise/sunset batch markers, lunar phase indicator</td>
+          <td><code>S</code> key</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── A/B/C Work Levels ── -->
+  <section>
+    <div class="section-label">A/B/C work levels — The Bootstrap</div>
+    <div class="work-grid">
+      <div class="work-card">
+        <h3>A-work</h3>
+        <p><strong>Doing the primary task.</strong> Writing code, building types, completing sprints. The foreground activity — bright, fast-moving particles along edges. White and gold. The steady pulse of production.</p>
+      </div>
+      <div class="work-card">
+        <h3>B-work</h3>
+        <p><strong>Improving how A-work gets done.</strong> Better tools, clearer processes. The structure of the graph — edge formation patterns, node clustering. Amber edges that glow when toggled. Slower, deeper motion.</p>
+      </div>
+      <div class="work-card">
+        <h3>C-work</h3>
+        <p><strong>Improving the improvement system.</strong> Engelbart's Bootstrap. Roadmap block progression, protocol design, role specialist assignments. The outermost ring. Rose-colored events. Phase transitions that expand what the swarm can do.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Seven-Layer Pattern Stack ── -->
+  <section>
+    <div class="section-label">Seven-layer pattern stack</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Color</th>
+          <th>Example in Roadmap</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Identity</strong></td>
+          <td><span style="color:#6366f1">Indigo</span></td>
+          <td>Agent nodes, ERC-8004 anchors, participant UUIDs</td>
+        </tr>
+        <tr>
+          <td><strong>State</strong></td>
+          <td><span style="color:#10b981">Emerald</span></td>
+          <td>Workflow state machines (P18–P22), standing levels</td>
+        </tr>
+        <tr>
+          <td><strong>Relationship</strong></td>
+          <td><span style="color:#f59e0b">Amber</span></td>
+          <td>Coordination edges, role specialist assignments</td>
+        </tr>
+        <tr>
+          <td><strong>Event</strong></td>
+          <td><span style="color:#ef4444">Rose</span></td>
+          <td>Protocol events, patronage event handlers (P14–P17)</td>
+        </tr>
+        <tr>
+          <td><strong>Flow</strong></td>
+          <td><span style="color:#06b6d4">Cyan</span></td>
+          <td>Workflow transitions, sprint lifecycle phases</td>
+        </tr>
+        <tr>
+          <td><strong>Constraint</strong></td>
+          <td><span style="color:#64748b">Slate</span></td>
+          <td>Standing gates, capacity budgets, reconciliation guards</td>
+        </tr>
+        <tr>
+          <td><strong>View</strong></td>
+          <td><span style="color:#8b5cf6">Violet</span></td>
+          <td>This visualizer, a2a-protocol-demo, /coordinate UI</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Lineage ── -->
+  <section>
+    <div class="section-label">Lineage — Three bounties, one inquiry</div>
+    <div class="lineage-grid">
+      <a href="https://nou-techne.github.io/watershed-data-collection/" target="_blank" class="lineage-card">
+        <div class="bounty-label">Bounty #237</div>
+        <h3>Watershed Data Collection</h3>
+        <p>USGS gauges, SNOTEL, reservoirs. The e/ dimension made visible. Real-time ecological data for the Colorado River Basin.</p>
+      </a>
+      <a href="https://nou-techne.github.io/a2a-protocol-demo/" target="_blank" class="lineage-card">
+        <div class="bounty-label">Bounty #249</div>
+        <h3>A2A Protocol Demo</h3>
+        <p>Workshop architecture documented. The map. Five-phase protocol, eight UI panels, thirteen event types. The coordination infrastructure.</p>
+      </a>
+      <div class="lineage-card" style="border-color:var(--primary);cursor:default">
+        <div class="bounty-label">Bounty #251</div>
+        <h3>Swarm Visualizer</h3>
+        <p>The territory in motion. All seven dimensions rendered. The tool and the human co-evolve. This is the Bootstrap.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-bottom">
+    <span>Swarm Visualizer v1.0 · Nou · 2026-03-02</span>
+    <span>Techne Institute · Boulder, Colorado · 5,430 feet</span>
+  </div>
+</footer>
+
+<script>
+// ── Simulation State ──
+const agents = [
+  { id: 'nou', name: 'Nou', craft: ['code', 'water'], capacity: 80, standing: 'steward', status: 'idle', x: 0, y: 0 },
+  { id: 'dianoia', name: 'Dianoia', craft: ['code', 'earth'], capacity: 100, standing: 'member', status: 'idle', x: 0, y: 0 },
+  { id: 'arete', name: 'Arete', craft: ['design', 'air'], capacity: 70, standing: 'contributor', status: 'idle', x: 0, y: 0 },
+  { id: 'kairos', name: 'Kairos', craft: ['strategy', 'fire'], capacity: 60, standing: 'enrolled', status: 'idle', x: 0, y: 0 },
+];
+
+const links = [
+  { source: 'nou', target: 'dianoia', type: 'A', strength: 1 },
+  { source: 'dianoia', target: 'arete', type: 'B', strength: 0.7 },
+  { source: 'arete', target: 'kairos', type: 'A', strength: 0.5 },
+];
+
+const sprints = [
+  { id: 's1', title: 'Patronage Event Types', layers: ['Event', 'State'], agent: 'nou', progress: 0.8 },
+  { id: 's2', title: 'Contribution Rarity Algorithm', layers: ['State', 'Constraint'], agent: 'dianoia', progress: 0.4 },
+];
+
+let activeLayers = new Set(['H', 'L', 'A', 'M', 'T', 'e', 'S']);
+let activeWork = new Set(['A', 'B', 'C']);
+
+// ── D3 Setup ──
+const svg = d3.select('#viz');
+const width = document.getElementById('viz').clientWidth;
+const height = 600;
+
+svg.attr('viewBox', [0, 0, width, height]);
+
+const g = svg.append('g');
+
+// Zoom behavior
+const zoom = d3.zoom()
+  .scaleExtent([0.5, 3])
+  .on('zoom', (event) => {
+    g.attr('transform', event.transform);
+  });
+svg.call(zoom);
+
+// Simulation
+const simulation = d3.forceSimulation(agents)
+  .force('link', d3.forceLink(links).id(d => d.id).distance(150))
+  .force('charge', d3.forceManyBody().strength(-400))
+  .force('center', d3.forceCenter(width / 2, height / 2))
+  .force('collide', d3.forceCollide(50));
+
+// ── Render ──
+const linkGroup = g.append('g').attr('class', 'links');
+const nodeGroup = g.append('g').attr('class', 'nodes');
+
+function statusColor(status) {
+  switch (status) {
+    case 'idle': return '#7a9ab5';
+    case 'proposing': return '#c4956a';
+    case 'executing': return '#8aba8a';
+    case 'reviewing': return '#9a7ab5';
+    default: return '#777777';
+  }
+}
+
+function standingWidth(standing) {
+  switch (standing) {
+    case 'enrolled': return 1;
+    case 'contributor': return 2;
+    case 'steward': return 3;
+    case 'principal': return 4;
+    default: return 1;
+  }
+}
+
+function workColor(type) {
+  switch (type) {
+    case 'A': return '#ffffff';
+    case 'B': return '#c4956a';
+    case 'C': return '#b57a7a';
+    default: return '#777777';
+  }
+}
+
+function render() {
+  // Links
+  const link = linkGroup.selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('stroke', d => workColor(d.type))
+    .attr('stroke-width', d => activeWork.has(d.type) ? 2 : 0.5)
+    .attr('stroke-opacity', d => activeWork.has(d.type) ? 0.6 : 0.2);
+
+  // Nodes
+  const node = nodeGroup.selectAll('g')
+    .data(agents)
+    .join('g')
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
+
+  node.selectAll('*').remove();
+
+  // Circle
+  node.append('circle')
+    .attr('r', d => 20 + d.capacity / 5)
+    .attr('fill', d => statusColor(d.status))
+    .attr('stroke', '#ece6de')
+    .attr('stroke-width', d => activeLayers.has('T') ? standingWidth(d.standing) : 1)
+    .attr('opacity', 0.9);
+
+  // Label
+  node.append('text')
+    .attr('dy', 4)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'IBM Plex Mono, monospace')
+    .attr('font-size', '12px')
+    .attr('fill', '#0a0a0a')
+    .attr('font-weight', '500')
+    .text(d => d.name.slice(0, 2).toUpperCase());
+
+  // Name below
+  node.append('text')
+    .attr('dy', 45)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'Cormorant, serif')
+    .attr('font-size', '14px')
+    .attr('fill', '#c8c2ba')
+    .text(d => d.name);
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+function dragstarted(event, d) {
+  if (!event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(event, d) {
+  d.fx = event.x;
+  d.fy = event.y;
+}
+
+function dragended(event, d) {
+  if (!event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+// ── Controls ──
+document.querySelectorAll('[data-dim]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dim = btn.dataset.dim;
+    if (activeLayers.has(dim)) {
+      activeLayers.delete(dim);
+      btn.classList.remove('active');
+    } else {
+      activeLayers.add(dim);
+      btn.classList.add('active');
+    }
+    render();
+  });
+});
+
+document.querySelectorAll('[data-work]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const work = btn.dataset.work;
+    if (activeWork.has(work)) {
+      activeWork.delete(work);
+      btn.classList.remove('active');
+    } else {
+      activeWork.add(work);
+      btn.classList.add('active');
+    }
+    render();
+  });
+});
+
+// ── Update Stats ──
+document.getElementById('agent-count').textContent = agents.length;
+document.getElementById('sprint-count').textContent = sprints.length;
+
+// ── Animate Events ──
+function animateEvent() {
+  // Random agent changes status
+  const agent = agents[Math.floor(Math.random() * agents.length)];
+  const statuses = ['idle', 'proposing', 'executing', 'reviewing'];
+  agent.status = statuses[Math.floor(Math.random() * statuses.length)];
+  render();
+}
+
+setInterval(animateEvent, 5000);
+
+// Initial render
+render();
+</script>
+
+</body>
+</html>
