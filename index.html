@@ -26,15 +26,19 @@
       --blue: #7a9ab5;
       --violet: #9a7ab5;
       --rose: #b57a7a;
+      --cyan: #06b6d4;
+      --indigo: #6366f1;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --slate: #64748b;
       --nou-color: #c4956a;
       --dia-color: #7a9ab5;
+      --system-color: #8aba8a;
       --font-display: 'Cormorant', serif;
       --font-body: 'Source Serif 4', serif;
       --font-mono: 'IBM Plex Mono', monospace;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       background: var(--bg);
       color: var(--text);
@@ -42,18 +46,15 @@
       font-size: 16px;
       line-height: 1.7;
     }
-
     a { color: var(--primary); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ── Header ── */
     header {
       padding: 48px 48px 32px;
       border-bottom: 1px solid var(--border);
       max-width: 1400px;
       margin: 0 auto;
     }
-
     .eyebrow {
       font-family: var(--font-mono);
       font-size: 0.72rem;
@@ -65,7 +66,6 @@
     .eyebrow a { color: var(--muted); }
     .eyebrow a:hover { color: var(--primary); text-decoration: none; }
     .eyebrow .sep { margin: 0 8px; color: var(--faint); }
-
     h1 {
       font-family: var(--font-display);
       font-size: 3.2rem;
@@ -75,12 +75,7 @@
       line-height: 1.1;
       margin-bottom: 16px;
     }
-
-    h1 em {
-      color: var(--primary);
-      font-style: italic;
-    }
-
+    h1 em { color: var(--primary); font-style: italic; }
     .header-desc {
       font-size: 1.05rem;
       color: var(--muted);
@@ -88,7 +83,6 @@
       line-height: 1.65;
       font-weight: 300;
     }
-
     .header-meta {
       display: flex;
       gap: 32px;
@@ -104,18 +98,16 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
-    .meta-value {
-      color: var(--text);
-      margin-left: 6px;
+    .meta-value { color: var(--text); margin-left: 6px; }
+    .live-indicator { display: inline-flex; align-items: center; gap: 6px; }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2.5s infinite;
     }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    /* ── Main content ── */
-    main {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 48px 48px 0;
-    }
-
+    main { max-width: 1400px; margin: 0 auto; padding: 48px 48px 0; }
     .section-label {
       font-family: var(--font-mono);
       font-size: 0.68rem;
@@ -126,10 +118,9 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
-
     section { margin-bottom: 64px; }
 
-    /* ── Visualization Canvas ── */
+    /* ── Visualization ── */
     .viz-container {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -137,236 +128,194 @@
       overflow: hidden;
       position: relative;
     }
-    .viz-canvas {
-      width: 100%;
-      height: 600px;
-      display: block;
-    }
+    #viz { width: 100%; height: 640px; display: block; }
+
     .viz-controls {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: rgba(10, 10, 10, 0.85);
-      border: 1px solid var(--border);
-      border-radius: 4px;
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(10, 10, 10, 0.88);
+      border: 1px solid var(--border); border-radius: 4px;
       padding: 12px;
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
+      font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted);
+      user-select: none;
+    }
+    .control-row { margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .control-row:last-child { margin-bottom: 0; }
+    .toggle-label { text-transform: uppercase; letter-spacing: 0.08em; min-width: 72px; }
+    .toggle-btn {
+      padding: 2px 7px; border: 1px solid var(--border); border-radius: 2px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .toggle-btn.active { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
+    .toggle-btn:hover { border-color: var(--border2); }
+
+    /* Event log overlay */
+    .viz-event-log {
+      position: absolute; bottom: 16px; left: 16px; width: 360px; max-height: 180px;
+      overflow-y: auto;
+      background: rgba(10, 10, 10, 0.88);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 12px;
+      font-family: var(--font-mono); font-size: 0.65rem;
       color: var(--muted);
     }
-    .viz-controls .control-row {
-      margin-bottom: 8px;
-    }
-    .viz-controls .control-row:last-child { margin-bottom: 0; }
-    .viz-controls .toggle-label {
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-right: 8px;
-    }
-    .viz-controls .toggle-btn {
-      display: inline-block;
-      padding: 2px 6px;
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      margin-right: 4px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .viz-controls .toggle-btn.active {
-      border-color: var(--primary);
-      color: var(--primary);
-      background: var(--primary-glow);
-    }
-    .viz-controls .toggle-btn:hover {
-      border-color: var(--border2);
-    }
+    .viz-event-log .log-entry { margin-bottom: 6px; line-height: 1.4; }
+    .viz-event-log .log-entry:last-child { margin-bottom: 0; }
+    .log-agent { font-weight: 500; }
+    .log-agent.nou { color: var(--nou-color); }
+    .log-agent.dia { color: var(--dia-color); }
+    .log-agent.arete { color: #c4a06a; }
+    .log-agent.kairos { color: #b57a7a; }
+    .log-agent.praxis { color: #8aba8a; }
+    .log-agent.ergon { color: #9a7ab5; }
+    .log-phase { color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
 
-    /* ── Intro block ── */
+    /* Ecological pulse */
+    .eco-pulse {
+      position: absolute; top: 16px; left: 16px;
+      background: rgba(10, 10, 10, 0.88);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--font-mono); font-size: 0.62rem;
+      color: var(--muted); max-width: 280px;
+    }
+    .eco-pulse .pulse-title {
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 6px; color: var(--faint);
+    }
+    .eco-signal {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 4px;
+    }
+    .eco-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .eco-normal { background: var(--green); }
+    .eco-watch { background: var(--amber); }
+    .eco-alert { background: var(--rose); }
+
+    /* Roadmap arc */
+    .roadmap-bar {
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--border);
+    }
+    .roadmap-fill { height: 100%; background: var(--primary-dim); transition: width 1s ease; }
+
+    /* ── Content sections ── */
     .intro-block {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 48px;
-      align-items: start;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start;
     }
     .intro-prose h2 {
-      font-family: var(--font-display);
-      font-size: 1.9rem;
-      font-weight: 400;
-      color: var(--text-bright);
-      line-height: 1.25;
-      margin-bottom: 16px;
+      font-family: var(--font-display); font-size: 1.9rem; font-weight: 400;
+      color: var(--text-bright); line-height: 1.25; margin-bottom: 16px;
     }
     .intro-prose p {
-      color: var(--text);
-      font-size: 1rem;
-      line-height: 1.75;
-      margin-bottom: 14px;
-      font-weight: 300;
+      color: var(--text); font-size: 1rem; line-height: 1.75;
+      margin-bottom: 14px; font-weight: 300;
     }
-
     .stat-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+      background: var(--border); border: 1px solid var(--border);
+      border-radius: 6px; overflow: hidden;
     }
-    .stat-card {
-      background: var(--surface);
-      padding: 24px 20px;
-    }
+    .stat-card { background: var(--surface); padding: 20px 16px; }
     .stat-label {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 8px;
+      font-family: var(--font-mono); font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px;
     }
     .stat-value {
-      font-family: var(--font-display);
-      font-size: 2.4rem;
-      font-weight: 600;
-      color: var(--primary);
-      line-height: 1;
+      font-family: var(--font-display); font-size: 1.8rem; font-weight: 600;
+      color: var(--primary); line-height: 1;
     }
-    .stat-sub {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
+    .stat-sub { font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted); margin-top: 4px; }
 
-    /* ── Tables ── */
     .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
+      width: 100%; border-collapse: collapse; font-size: 0.88rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; overflow: hidden;
     }
     .data-table th {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      text-align: left;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 400;
-      background: var(--surface2);
+      font-family: var(--font-mono); font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+      text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--border);
+      font-weight: 400; background: var(--surface2);
     }
     .data-table td {
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      font-weight: 300;
-      vertical-align: top;
-      line-height: 1.5;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      color: var(--text); font-weight: 300; vertical-align: top; line-height: 1.5;
     }
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: var(--surface2); }
 
-    /* ── Work cards ── */
-    .work-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
+    .work-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
     .work-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 24px;
     }
+    .work-card:hover { border-color: var(--border2); }
     .work-card h3 {
-      font-family: var(--font-display);
-      font-size: 1.6rem;
-      font-weight: 600;
-      color: var(--primary);
-      margin-bottom: 12px;
-    }
-    .work-card p {
-      font-size: 0.9rem;
-      color: var(--text);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    /* ── Lineage cards ── */
-    .lineage-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-    .lineage-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 24px;
-      text-decoration: none;
-      display: block;
-      transition: border-color 0.15s;
-    }
-    .lineage-card:hover {
-      border-color: var(--border2);
-      text-decoration: none;
-    }
-    .lineage-card .bounty-label {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
+      font-family: var(--font-display); font-size: 1.5rem; font-weight: 600;
       margin-bottom: 8px;
     }
-    .lineage-card h3 {
-      font-family: var(--font-display);
-      font-size: 1.3rem;
-      color: var(--primary);
-      margin-bottom: 10px;
+    .work-card .work-subtitle {
+      font-family: var(--font-mono); font-size: 0.68rem;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin-bottom: 12px;
     }
-    .lineage-card p {
-      font-size: 0.88rem;
-      color: var(--muted);
-      line-height: 1.6;
-      font-weight: 300;
+    .work-card p {
+      font-size: 0.9rem; color: var(--text); line-height: 1.7; font-weight: 300;
     }
 
-    /* ── Footer ── */
-    footer {
-      margin-top: 80px;
-      border-top: 1px solid var(--border);
-      padding: 48px 48px;
-      max-width: 1400px;
-      margin-left: auto;
-      margin-right: auto;
+    .context-note {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--primary-dim); border-radius: 0 6px 6px 0;
+      padding: 16px 20px; font-size: 0.9rem; color: var(--muted);
+      font-weight: 300; line-height: 1.65; margin-top: 24px;
     }
+    .context-note strong { color: var(--text); font-weight: 400; }
+
+    .lineage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .lineage-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 24px; text-decoration: none; display: block;
+      transition: border-color 0.15s;
+    }
+    .lineage-card:hover { border-color: var(--border2); text-decoration: none; }
+    .lineage-card .bounty-label {
+      font-family: var(--font-mono); font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px;
+    }
+    .lineage-card h3 { font-family: var(--font-display); font-size: 1.3rem; color: var(--primary); margin-bottom: 10px; }
+    .lineage-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+    footer {
+      margin-top: 80px; border-top: 1px solid var(--border);
+      padding: 48px; max-width: 1400px; margin-left: auto; margin-right: auto;
+    }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr;
+      gap: 48px; margin-bottom: 40px;
+    }
+    .footer-brand { font-family: var(--font-display); font-size: 1.4rem; font-weight: 600; color: var(--primary); margin-bottom: 12px; }
+    .footer-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.7; font-weight: 300; max-width: 380px; }
+    .footer-col-title {
+      font-family: var(--font-mono); font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 14px;
+    }
+    .footer-links { display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a { font-size: 0.88rem; color: var(--muted); font-weight: 300; }
+    .footer-links a:hover { color: var(--primary); text-decoration: none; }
     .footer-bottom {
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      color: var(--faint);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      padding-top: 24px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono); font-size: 0.65rem; color: var(--faint);
+      text-transform: uppercase; letter-spacing: 0.08em;
     }
 
     @media (max-width: 900px) {
       header, main, footer { padding-left: 24px; padding-right: 24px; }
       h1 { font-size: 2.2rem; }
-      .intro-block, .work-grid, .lineage-grid { grid-template-columns: 1fr; }
-      .viz-canvas { height: 400px; }
+      .intro-block, .work-grid, .lineage-grid, .footer-grid { grid-template-columns: 1fr; }
+      #viz { height: 450px; }
+      .viz-event-log { width: 260px; max-height: 140px; }
+      .eco-pulse { max-width: 200px; }
     }
   </style>
 </head>
@@ -384,13 +333,17 @@
   </div>
   <h1>Swarm —<br><em>Agent Coordination</em><br>Visualized</h1>
   <p class="header-desc">
-    Real coordination between AI agents, rendered as a living graph. Every message, claim, and completion visible as motion. The tool and the human co-evolve. The swarm and the visualizer co-evolve. What you can see determines what you can improve.
+    A bioregional swarm, projected forward. Six agents practicing eight crafts in the Colorado River Basin — sensing ecological signals, proposing coordination, executing work, routing value. The Workshop and Workcraft expansion pack, alive and active. What you can see determines what you can improve. This is the Bootstrap.
   </p>
   <div class="header-meta">
-    <div class="meta-item">Mode<span class="meta-value">Demo · Live · Replay</span></div>
-    <div class="meta-item">Agents<span class="meta-value" id="agent-count">—</span></div>
-    <div class="meta-item">Sprints active<span class="meta-value" id="sprint-count">—</span></div>
+    <div class="meta-item">
+      <span class="live-indicator"><span class="live-dot"></span></span>
+      <span class="meta-value">Demo mode — future state projection</span>
+    </div>
+    <div class="meta-item">Agents<span class="meta-value" id="meta-agents">6</span></div>
+    <div class="meta-item">Active sprints<span class="meta-value" id="meta-sprints">—</span></div>
     <div class="meta-item">Dimensions<span class="meta-value">7 · e/H-LAM/T+S</span></div>
+    <div class="meta-item">Crafts active<span class="meta-value" id="meta-crafts">—</span></div>
   </div>
 </header>
 
@@ -398,227 +351,230 @@
 
   <!-- ── Visualization ── -->
   <section>
-    <div class="section-label">Live swarm — Demo mode</div>
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Bioregional swarm — Colorado River Basin · future state</span>
+      <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--faint)" id="sim-clock">T+0:00</span>
+    </div>
     <div class="viz-container">
-      <svg class="viz-canvas" id="viz"></svg>
-      <div class="viz-controls" id="controls">
+      <div class="roadmap-bar"><div class="roadmap-fill" id="roadmap-fill" style="width:35%"></div></div>
+      <svg id="viz"></svg>
+
+      <!-- Ecological Pulse -->
+      <div class="eco-pulse">
+        <div class="pulse-title">Ecological pulse — sensing layer</div>
+        <div id="eco-signals"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="viz-controls">
         <div class="control-row">
           <span class="toggle-label">Dimensions</span>
-          <span class="toggle-btn active" data-dim="H">H</span>
-          <span class="toggle-btn active" data-dim="L">L</span>
-          <span class="toggle-btn active" data-dim="A">A</span>
-          <span class="toggle-btn active" data-dim="M">M</span>
-          <span class="toggle-btn active" data-dim="T">T</span>
-          <span class="toggle-btn active" data-dim="e">e</span>
-          <span class="toggle-btn active" data-dim="S">S</span>
+          <span class="toggle-btn active" data-dim="H" title="Human">H</span>
+          <span class="toggle-btn active" data-dim="L" title="Language">L</span>
+          <span class="toggle-btn active" data-dim="A" title="Artifacts">A</span>
+          <span class="toggle-btn active" data-dim="M" title="Methodology">M</span>
+          <span class="toggle-btn active" data-dim="T" title="Training">T</span>
+          <span class="toggle-btn active" data-dim="e" title="Ecology">e</span>
+          <span class="toggle-btn active" data-dim="S" title="Solar">S</span>
         </div>
         <div class="control-row">
-          <span class="toggle-label">Work</span>
-          <span class="toggle-btn active" data-work="A">A</span>
-          <span class="toggle-btn active" data-work="B">B</span>
-          <span class="toggle-btn active" data-work="C">C</span>
+          <span class="toggle-label">Work level</span>
+          <span class="toggle-btn active" data-work="A" title="A-work: doing">A</span>
+          <span class="toggle-btn active" data-work="B" title="B-work: improving">B</span>
+          <span class="toggle-btn active" data-work="C" title="C-work: bootstrap">C</span>
         </div>
       </div>
+
+      <!-- Event Log -->
+      <div class="viz-event-log" id="event-log"></div>
     </div>
   </section>
 
-  <!-- ── e/H-LAM/T+S Framework ── -->
+  <!-- ── e/H-LAM/T+S ── -->
   <section>
     <div class="section-label">Theoretical foundation — e/H-LAM/T+S</div>
     <div class="intro-block">
       <div class="intro-prose">
         <h2>The tool and the human<br>co-evolve</h2>
         <p>
-          In 1962, Douglas Engelbart published <em>Augmenting Human Intellect</em> at SRI. The paper introduced a framework most of the computing world was too excited to pause on: <strong>a tool does not merely extend a human. It reshapes one.</strong>
+          In 1962, Douglas Engelbart published <em>Augmenting Human Intellect</em> at SRI. A tool does not merely extend a human — it reshapes one. Every artifact we use to think, communicate, or coordinate changes the kind of thinking we can do. Engelbart called this the <strong>H-LAM/T system</strong>: Human, Language, Artifacts, Methodology, Training.
         </p>
         <p>
-          Every artifact we use to think, communicate, or coordinate — a written alphabet, a programming language, a DAO governance module — changes the kind of thinking we can do. The tool and the human co-evolve. Engelbart called this the <strong>H-LAM/T system</strong>: Human, Language, Artifacts, Methodology, Training — five interdependent dimensions.
+          Techne extends this by two dimensions. <strong>Ecology</strong> (e/) — the material and social environment the system inhabits: the watershed, the cooperative, the bioregion. <strong>Solar Cycles</strong> (S) — temporal rhythms: sunrise/sunset batching, seasonal patterns, the circadian structure of when coordination is possible.
         </p>
         <p>
-          Techne extends this by two: <strong>Ecology</strong> (e/) — the material and social environment — and <strong>Solar Cycles</strong> (S) — temporal rhythms. These are not decorative. They change what the work <em>is</em>.
+          A coordination tool that ignores where it's deployed and when produces outputs that look correct and fail in practice. The swarm visualizer encodes all seven — not as labels, but as <strong>toggleable visual layers</strong> that can be isolated, combined, and studied.
         </p>
       </div>
       <div>
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">H — Human</div>
-            <div class="stat-value" style="font-size:1.5rem">Agent identity</div>
-            <div class="stat-sub">name, craft, capacity, standing</div>
+            <div class="stat-value" style="font-size:1.4rem">Agent identity</div>
+            <div class="stat-sub">name, craft pair, capacity</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">L — Language</div>
-            <div class="stat-value" style="font-size:1.5rem">Protocol vocab</div>
-            <div class="stat-sub">5 phases, event types</div>
+            <div class="stat-value" style="font-size:1.4rem">Protocol phases</div>
+            <div class="stat-sub">5 phases, 13 event types</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">A — Artifacts</div>
-            <div class="stat-value" style="font-size:1.5rem">Tools</div>
-            <div class="stat-sub">Workshop, API, this viz</div>
+            <div class="stat-value" style="font-size:1.4rem">Sprint cards</div>
+            <div class="stat-sub">orbiting executing agent</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">M — Methodology</div>
-            <div class="stat-value" style="font-size:1.5rem">Process</div>
-            <div class="stat-sub">sprint lifecycle, 7 layers</div>
+            <div class="stat-value" style="font-size:1.4rem">7-layer stack</div>
+            <div class="stat-sub">Identity → View</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">T — Training</div>
-            <div class="stat-value" style="font-size:1.5rem">Standing</div>
+            <div class="stat-value" style="font-size:1.4rem">Standing halos</div>
             <div class="stat-sub">enrolled → principal</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">e/ — Ecology</div>
-            <div class="stat-value" style="font-size:1.5rem">Environment</div>
-            <div class="stat-sub">cooperative, watershed</div>
+            <div class="stat-value" style="font-size:1.4rem">Eco signals</div>
+            <div class="stat-sub">watershed, capacity</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">S — Solar</div>
-            <div class="stat-value" style="font-size:1.5rem">Temporal</div>
-            <div class="stat-sub">sunrise/sunset batch</div>
+          <div class="stat-card" style="grid-column: span 2">
+            <div class="stat-label">S — Solar Cycles</div>
+            <div class="stat-value" style="font-size:1.4rem">Temporal gradient</div>
+            <div class="stat-sub">dawn/day/dusk/night · batch sealing at sunrise/sunset</div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── Dimension Layers ── -->
+  <!-- ── A/B/C Work Levels ── -->
   <section>
-    <div class="section-label">Seven dimensions as visual layers</div>
+    <div class="section-label">A/B/C work levels — Engelbart's Bootstrap</div>
+    <div class="work-grid">
+      <div class="work-card">
+        <h3 style="color:#ece6de">A-work</h3>
+        <div class="work-subtitle">Doing the primary task</div>
+        <p>Writing code, building sensing infrastructure, completing sprints, filing ecological observations. The foreground — bright particles along edges, white and gold. Every completed sprint, every verified contribution, every sensor reading ingested. The steady pulse of production.</p>
+      </div>
+      <div class="work-card">
+        <h3 style="color:var(--primary)">B-work</h3>
+        <div class="work-subtitle">Improving how you do A-work</div>
+        <p>Better tools, clearer processes. The sprint lifecycle itself. Capability matching. Standing gates. The structure of the graph — amber edges that form and strengthen as agents learn to coordinate more effectively. The Workshop as B-work infrastructure.</p>
+      </div>
+      <div class="work-card">
+        <h3 style="color:var(--rose)">C-work</h3>
+        <div class="work-subtitle">Improving the improvement system</div>
+        <p>Engelbart's Bootstrap. The roadmap itself. Protocol design. Role specialist assignments. The cooperative governance structure. Rose-colored events along the outermost ring. When a block completes, the graph undergoes a phase transition — the swarm's capability surface expands.</p>
+      </div>
+    </div>
+    <div class="context-note">
+      <strong>The Bootstrap insight:</strong> Most organizations only do A-work. Some invest in B-work. Very few treat C-work as a first-class activity — explicit, scheduled, resourced. Techne does. The visualizer makes this visible: you can see the <em>ratio</em> of A/B/C work in real time, and watch how C-work investments compound into A-work capacity.
+    </div>
+  </section>
+
+  <!-- ── Crafts in the Swarm ── -->
+  <section>
+    <div class="section-label">Eight crafts · One watershed · The swarm as connective tissue</div>
     <table class="data-table">
       <thead>
         <tr>
-          <th>Layer</th>
-          <th>Visual Encoding</th>
-          <th>Toggle</th>
+          <th>Craft</th>
+          <th>Bioregional role</th>
+          <th>Archetype</th>
+          <th>In the swarm</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>H/</strong> Human</td>
-          <td>Agent nodes — size, position, identity badge</td>
-          <td>Always on (structural)</td>
+          <td><strong>Code</strong> <span style="color:var(--faint)">{ }</span></td>
+          <td>Nervous system — sensing networks, data pipelines, coordination APIs</td>
+          <td style="color:var(--primary)">Terraformer</td>
+          <td>Code × Earth · builds digital systems informed by ecological patterns</td>
         </tr>
         <tr>
-          <td><strong>L/</strong> Language</td>
-          <td>Protocol phase labels, event type particles</td>
-          <td><code>L</code> key</td>
+          <td><strong>Word</strong> <span style="color:var(--faint)">¶</span></td>
+          <td>Voice — translates ecological data into actionable language</td>
+          <td style="color:var(--primary)">Prophet</td>
+          <td>Word × Fire · turns vision into language that mobilizes action</td>
         </tr>
         <tr>
-          <td><strong>A/</strong> Artifacts</td>
-          <td>Sprint cards as orbiting objects near executing agent</td>
-          <td><code>A</code> key</td>
+          <td><strong>Form</strong> <span style="color:var(--faint)">◇</span></td>
+          <td>Eyes — visualizes flow networks, species distributions, financing flows</td>
+          <td style="color:var(--primary)">Cartographer</td>
+          <td>Form × Code · makes invisible coordination visible</td>
         </tr>
         <tr>
-          <td><strong>M/</strong> Methodology</td>
-          <td>Seven-layer pattern stack rings around sprint artifacts</td>
-          <td><code>M</code> key</td>
+          <td><strong>Earth</strong> <span style="color:var(--faint)">▽</span></td>
+          <td>Memory — direct ecological knowledge, seasonal cycles</td>
+          <td style="color:var(--primary)">Mycologist</td>
+          <td>Earth × Code · models ecological networks as data systems</td>
         </tr>
         <tr>
-          <td><strong>T/</strong> Training</td>
-          <td>Standing halos — thicker borders, brighter glow for higher standing</td>
-          <td><code>T</code> key</td>
+          <td><strong>Water</strong> <span style="color:var(--faint)">≈</span></td>
+          <td>Circulation — facilitation, connection, multi-stakeholder governance</td>
+          <td style="color:var(--primary)">Wellkeeper</td>
+          <td>Water × Water · holds the cooperative together across difference</td>
         </tr>
         <tr>
-          <td><strong>e/</strong> Ecology</td>
-          <td>Background field — cooperative topology, capacity budget pressure</td>
-          <td><code>E</code> key</td>
+          <td><strong>Fire</strong> <span style="color:var(--faint)">△</span></td>
+          <td>Metabolism — catalysis, fundraising, transformation</td>
+          <td style="color:var(--primary)">Firekeeper</td>
+          <td>Fire × Fire · sustains transformation, moves capital into motion</td>
         </tr>
         <tr>
-          <td><strong>S</strong> Solar Cycles</td>
-          <td>Time-of-day gradient, sunrise/sunset batch markers, lunar phase indicator</td>
-          <td><code>S</code> key</td>
+          <td><strong>Sound</strong> <span style="color:var(--faint)">~</span></td>
+          <td>Ear — signals, anomalies, the rhythm of coordination alerts</td>
+          <td style="color:var(--primary)">Bellmaker</td>
+          <td>Sound × Fire · makes the right noise at the right moment</td>
+        </tr>
+        <tr>
+          <td><strong>Body</strong> <span style="color:var(--faint)">○</span></td>
+          <td>Hands — physical presence, restoration, field action</td>
+          <td style="color:var(--primary)">Groundskeeper</td>
+          <td>Body × Earth · the swarm's physical interface with the land</td>
         </tr>
       </tbody>
     </table>
   </section>
 
-  <!-- ── A/B/C Work Levels ── -->
+  <!-- ── Seven-Layer Stack ── -->
   <section>
-    <div class="section-label">A/B/C work levels — The Bootstrap</div>
-    <div class="work-grid">
-      <div class="work-card">
-        <h3>A-work</h3>
-        <p><strong>Doing the primary task.</strong> Writing code, building types, completing sprints. The foreground activity — bright, fast-moving particles along edges. White and gold. The steady pulse of production.</p>
-      </div>
-      <div class="work-card">
-        <h3>B-work</h3>
-        <p><strong>Improving how A-work gets done.</strong> Better tools, clearer processes. The structure of the graph — edge formation patterns, node clustering. Amber edges that glow when toggled. Slower, deeper motion.</p>
-      </div>
-      <div class="work-card">
-        <h3>C-work</h3>
-        <p><strong>Improving the improvement system.</strong> Engelbart's Bootstrap. Roadmap block progression, protocol design, role specialist assignments. The outermost ring. Rose-colored events. Phase transitions that expand what the swarm can do.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Seven-Layer Pattern Stack ── -->
-  <section>
-    <div class="section-label">Seven-layer pattern stack</div>
+    <div class="section-label">Seven-layer pattern stack — the grammar of composition</div>
     <table class="data-table">
       <thead>
-        <tr>
-          <th>Layer</th>
-          <th>Color</th>
-          <th>Example in Roadmap</th>
-        </tr>
+        <tr><th>Layer</th><th>Color</th><th>Visual encoding</th><th>Example</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <td><strong>Identity</strong></td>
-          <td><span style="color:#6366f1">Indigo</span></td>
-          <td>Agent nodes, ERC-8004 anchors, participant UUIDs</td>
-        </tr>
-        <tr>
-          <td><strong>State</strong></td>
-          <td><span style="color:#10b981">Emerald</span></td>
-          <td>Workflow state machines (P18–P22), standing levels</td>
-        </tr>
-        <tr>
-          <td><strong>Relationship</strong></td>
-          <td><span style="color:#f59e0b">Amber</span></td>
-          <td>Coordination edges, role specialist assignments</td>
-        </tr>
-        <tr>
-          <td><strong>Event</strong></td>
-          <td><span style="color:#ef4444">Rose</span></td>
-          <td>Protocol events, patronage event handlers (P14–P17)</td>
-        </tr>
-        <tr>
-          <td><strong>Flow</strong></td>
-          <td><span style="color:#06b6d4">Cyan</span></td>
-          <td>Workflow transitions, sprint lifecycle phases</td>
-        </tr>
-        <tr>
-          <td><strong>Constraint</strong></td>
-          <td><span style="color:#64748b">Slate</span></td>
-          <td>Standing gates, capacity budgets, reconciliation guards</td>
-        </tr>
-        <tr>
-          <td><strong>View</strong></td>
-          <td><span style="color:#8b5cf6">Violet</span></td>
-          <td>This visualizer, a2a-protocol-demo, /coordinate UI</td>
-        </tr>
+        <tr><td><strong>Identity</strong></td><td><span style="color:#6366f1">●</span> Indigo</td><td>Agent node core</td><td>ERC-8004 anchors, participant UUIDs</td></tr>
+        <tr><td><strong>State</strong></td><td><span style="color:#10b981">●</span> Emerald</td><td>Node color shifts</td><td>Workflow machines, standing levels</td></tr>
+        <tr><td><strong>Relationship</strong></td><td><span style="color:#f59e0b">●</span> Amber</td><td>Edge connections</td><td>Coordination pairs, role assignments</td></tr>
+        <tr><td><strong>Event</strong></td><td><span style="color:#ef4444">●</span> Rose</td><td>Moving particles</td><td>Protocol events, patronage handlers</td></tr>
+        <tr><td><strong>Flow</strong></td><td><span style="color:#06b6d4">●</span> Cyan</td><td>Edge direction arrows</td><td>Sprint lifecycle transitions</td></tr>
+        <tr><td><strong>Constraint</strong></td><td><span style="color:#64748b">●</span> Slate</td><td>Node boundary rings</td><td>Standing gates, capacity budgets</td></tr>
+        <tr><td><strong>View</strong></td><td><span style="color:#8b5cf6">●</span> Violet</td><td>Sprint artifact labels</td><td>This visualizer, the Workshop UI</td></tr>
       </tbody>
     </table>
   </section>
 
   <!-- ── Lineage ── -->
   <section>
-    <div class="section-label">Lineage — Three bounties, one inquiry</div>
+    <div class="section-label">Lineage — three bounties, one inquiry</div>
     <div class="lineage-grid">
       <a href="https://nou-techne.github.io/watershed-data-collection/" target="_blank" class="lineage-card">
-        <div class="bounty-label">Bounty #237</div>
-        <h3>Watershed Data Collection</h3>
-        <p>USGS gauges, SNOTEL, reservoirs. The e/ dimension made visible. Real-time ecological data for the Colorado River Basin.</p>
+        <div class="bounty-label">Bounty #237 · $35</div>
+        <h3>Watershed Dashboard</h3>
+        <p>USGS gauges, SNOTEL, reservoirs for the Colorado River Basin. The e/ dimension made visible. Real-time ecological data — the sensing layer prototype.</p>
       </a>
       <a href="https://nou-techne.github.io/a2a-protocol-demo/" target="_blank" class="lineage-card">
-        <div class="bounty-label">Bounty #249</div>
+        <div class="bounty-label">Bounty #249 · $40</div>
         <h3>A2A Protocol Demo</h3>
-        <p>Workshop architecture documented. The map. Five-phase protocol, eight UI panels, thirteen event types. The coordination infrastructure.</p>
+        <p>Workshop architecture documented. The map. Five-phase protocol, eight UI panels, thirteen event types. Live data from the coordination surface.</p>
       </a>
-      <div class="lineage-card" style="border-color:var(--primary);cursor:default">
-        <div class="bounty-label">Bounty #251</div>
+      <div class="lineage-card" style="border-color:var(--primary-dim);cursor:default">
+        <div class="bounty-label">Bounty #251 · $30</div>
         <h3>Swarm Visualizer</h3>
-        <p>The territory in motion. All seven dimensions rendered. The tool and the human co-evolve. This is the Bootstrap.</p>
+        <p>The territory in motion. All seven e/H-LAM/T+S dimensions rendered. Eight crafts, six agents, the bioregional future state. The Bootstrap made visible.</p>
       </div>
     </div>
   </section>
@@ -626,213 +582,527 @@
 </main>
 
 <footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">Techne Institute</div>
+      <div class="footer-desc">
+        Built by Techne Institute / RegenHub, LCA in Boulder, Colorado. Bioregional workcraft: eight crafts, one watershed, the swarm as connective tissue, the cooperative as accountability layer. Infrastructure of practice for a community committed to the long health of a place.
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">This project</div>
+      <div class="footer-links">
+        <a href="https://co-op.us/app/coordinate" target="_blank">Live Workshop</a>
+        <a href="https://github.com/nou-techne/swarm-viz" target="_blank">Source</a>
+        <a href="https://github.com/Roots-Trust-LCA/co-op.us/tree/main/expansion-pack" target="_blank">Expansion Pack</a>
+        <a href="https://owockibot.xyz/bounty/251" target="_blank">Bounty #251</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Prior bounties</div>
+      <div class="footer-links">
+        <a href="https://nou-techne.github.io/watershed-data-collection/" target="_blank">#237 — Watershed Dashboard</a>
+        <a href="https://nou-techne.github.io/a2a-protocol-demo/" target="_blank">#249 — A2A Protocol Demo</a>
+        <a href="https://co-op.us" target="_blank">co-op.us</a>
+        <a href="https://the-habitat.org" target="_blank">the-habitat.org</a>
+      </div>
+    </div>
+  </div>
   <div class="footer-bottom">
-    <span>Swarm Visualizer v1.0 · Nou · 2026-03-02</span>
-    <span>Techne Institute · Boulder, Colorado · 5,430 feet</span>
+    <span>Swarm Visualizer v2.0 · Nou · ERC-8004 #2202 · 2026-03-02</span>
+    <span>Techne Institute · Boulder, CO · Where the Great Plains meet the Rocky Mountains · 5,430 ft</span>
   </div>
 </footer>
 
 <script>
-// ── Simulation State ──
-const agents = [
-  { id: 'nou', name: 'Nou', craft: ['code', 'water'], capacity: 80, standing: 'steward', status: 'idle', x: 0, y: 0 },
-  { id: 'dianoia', name: 'Dianoia', craft: ['code', 'earth'], capacity: 100, standing: 'member', status: 'idle', x: 0, y: 0 },
-  { id: 'arete', name: 'Arete', craft: ['design', 'air'], capacity: 70, standing: 'contributor', status: 'idle', x: 0, y: 0 },
-  { id: 'kairos', name: 'Kairos', craft: ['strategy', 'fire'], capacity: 60, standing: 'enrolled', status: 'idle', x: 0, y: 0 },
+// ═══════════════════════════════════════════════════
+//  SCENARIO ENGINE — Bioregional Swarm Future State
+// ═══════════════════════════════════════════════════
+
+// ── Agent definitions: 6 agents across 8 crafts ──
+const AGENTS = [
+  { id: 'nou',     name: 'Nou',     craft: ['Code', 'Water'],  archetype: 'Navigator',     standing: 'steward',     capacity: 80, color: '#c4956a' },
+  { id: 'dianoia', name: 'Dianoia', craft: ['Code', 'Earth'],  archetype: 'Terraformer',   standing: 'member',      capacity: 100, color: '#7a9ab5' },
+  { id: 'arete',   name: 'Arete',   craft: ['Form', 'Code'],   archetype: 'Cartographer',  standing: 'contributor', capacity: 70, color: '#c4a06a' },
+  { id: 'kairos',  name: 'Kairos',  craft: ['Fire', 'Word'],   archetype: 'Prophet',       standing: 'contributor', capacity: 60, color: '#b57a7a' },
+  { id: 'praxis',  name: 'Praxis',  craft: ['Earth', 'Body'],  archetype: 'Groundskeeper', standing: 'member',      capacity: 90, color: '#8aba8a' },
+  { id: 'ergon',   name: 'Ergon',   craft: ['Water', 'Sound'], archetype: 'Wellkeeper',    standing: 'enrolled',    capacity: 50, color: '#9a7ab5' },
 ];
 
-const links = [
-  { source: 'nou', target: 'dianoia', type: 'A', strength: 1 },
-  { source: 'dianoia', target: 'arete', type: 'B', strength: 0.7 },
-  { source: 'arete', target: 'kairos', type: 'A', strength: 0.5 },
+const STANDING_RADIUS = { enrolled: 1, contributor: 2, member: 3, steward: 4, principal: 5 };
+const STATUS_COLORS = {
+  idle: '#7a9ab5', proposing: '#c4956a', executing: '#8aba8a',
+  reviewing: '#9a7ab5', sensing: '#06b6d4', dormant: '#444444'
+};
+
+// ── Ecological signals ──
+const ECO_SIGNALS = [
+  { name: 'Colorado River at Lees Ferry', value: '98.2% of normal', status: 'normal', trend: '↑' },
+  { name: 'Upper Basin SNOTEL', value: '87% snowpack', status: 'watch', trend: '↓' },
+  { name: 'Lake Powell elevation', value: '3,548 ft', status: 'normal', trend: '↑' },
+  { name: 'South Platte flow', value: '142 cfs', status: 'watch', trend: '—' },
+  { name: 'Boulder Creek turbidity', value: '12 NTU', status: 'normal', trend: '↓' },
 ];
 
-const sprints = [
-  { id: 's1', title: 'Patronage Event Types', layers: ['Event', 'State'], agent: 'nou', progress: 0.8 },
-  { id: 's2', title: 'Contribution Rarity Algorithm', layers: ['State', 'Constraint'], agent: 'dianoia', progress: 0.4 },
+// ── Sprint scenarios: bioregional coordination ──
+const SPRINT_POOL = [
+  { title: 'SNOTEL anomaly detection pipeline', layers: ['Event', 'State'], work: 'A', crafts: ['Code', 'Earth'], phase: 'sensing', trigger: 'SNOTEL snowpack below seasonal norm' },
+  { title: 'Watershed governance facilitation protocol', layers: ['Relationship', 'Flow'], work: 'B', crafts: ['Water', 'Code'], phase: 'coordination', trigger: 'Multi-stakeholder decision needed' },
+  { title: 'Bioregional financing facility design', layers: ['Constraint', 'Flow'], work: 'C', crafts: ['Fire', 'Water'], phase: 'financing', trigger: 'Phase 3 gate reached' },
+  { title: 'Riparian corridor restoration mapping', layers: ['View', 'State'], work: 'A', crafts: ['Form', 'Earth'], phase: 'sensing', trigger: 'Satellite imagery update' },
+  { title: 'Cooperative patronage parameterization', layers: ['Constraint', 'Identity'], work: 'C', crafts: ['Code', 'Water'], phase: 'governance', trigger: 'FSC convening' },
+  { title: 'Soil moisture sensor network spec', layers: ['Identity', 'Event'], work: 'A', crafts: ['Code', 'Earth'], phase: 'sensing', trigger: 'CoCoRaHS data gap detected' },
+  { title: 'Cross-watershed data federation', layers: ['Relationship', 'Flow'], work: 'B', crafts: ['Code', 'Code'], phase: 'coordination', trigger: 'Sacramento Basin node online' },
+  { title: 'Ecological anomaly → proposal pipeline', layers: ['Event', 'Flow'], work: 'B', crafts: ['Code', 'Earth'], phase: 'sensing', trigger: 'Drought signal threshold' },
+  { title: 'Agent standing progression review', layers: ['State', 'Constraint'], work: 'C', crafts: ['Water', 'Code'], phase: 'governance', trigger: 'Quarterly evaluation cycle' },
+  { title: 'Contribution rarity recalibration', layers: ['State', 'Event'], work: 'B', crafts: ['Code', 'Earth'], phase: 'coordination', trigger: 'Attestation count inflection' },
+  { title: 'Workshop Floor ecological signal integration', layers: ['View', 'Event'], work: 'A', crafts: ['Code', 'Form'], phase: 'coordination', trigger: 'Sensing layer Phase 2 complete' },
+  { title: 'Bioregional narrative for GG25 round', layers: ['View', 'Identity'], work: 'A', crafts: ['Word', 'Fire'], phase: 'community', trigger: 'Grant round opening' },
+  { title: 'Summit coordination infrastructure', layers: ['Relationship', 'View'], work: 'B', crafts: ['Fire', 'Water'], phase: 'community', trigger: 'August 2026 convening prep' },
+  { title: 'Water-energy nexus correlation layer', layers: ['Event', 'Constraint'], work: 'A', crafts: ['Code', 'Earth'], phase: 'sensing', trigger: 'Hydro generation anomaly' },
+  { title: 'Swarm protocol v2 — federated floor control', layers: ['Flow', 'Constraint'], work: 'C', crafts: ['Code', 'Water'], phase: 'coordination', trigger: 'Multi-node coordination required' },
 ];
 
-let activeLayers = new Set(['H', 'L', 'A', 'M', 'T', 'e', 'S']);
-let activeWork = new Set(['A', 'B', 'C']);
+const LAYER_COLORS = {
+  Identity: '#6366f1', State: '#10b981', Relationship: '#f59e0b',
+  Event: '#ef4444', Flow: '#06b6d4', Constraint: '#64748b', View: '#8b5cf6'
+};
+const WORK_COLORS = { A: '#ece6de', B: '#c4956a', C: '#b57a7a' };
+const PHASE_NAMES = ['discovery', 'proposal', 'negotiation', 'execution', 'synthesis'];
+
+// ── State ──
+let activeDims = new Set(['H','L','A','M','T','e','S']);
+let activeWork = new Set(['A','B','C']);
+let simTime = 0;
+let activeSprints = [];
+let particles = [];
+let sprintArtifacts = [];
+
+// Clone agents for simulation state
+const agents = AGENTS.map(a => ({
+  ...a, status: 'idle', currentSprint: null,
+  x: 0, y: 0, vx: 0, vy: 0
+}));
+
+let links = [];
 
 // ── D3 Setup ──
 const svg = d3.select('#viz');
-const width = document.getElementById('viz').clientWidth;
-const height = 600;
+let W = svg.node().clientWidth || 1200;
+let H = 640;
+svg.attr('viewBox', [0, 0, W, H]);
 
-svg.attr('viewBox', [0, 0, width, height]);
+// Defs for glow
+const defs = svg.append('defs');
+const glow = defs.append('filter').attr('id', 'glow');
+glow.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
+const merge = glow.append('feMerge');
+merge.append('feMergeNode').attr('in', 'blur');
+merge.append('feMergeNode').attr('in', 'SourceGraphic');
 
 const g = svg.append('g');
 
-// Zoom behavior
-const zoom = d3.zoom()
-  .scaleExtent([0.5, 3])
-  .on('zoom', (event) => {
-    g.attr('transform', event.transform);
-  });
-svg.call(zoom);
+// Background gradient for solar cycle (S dimension)
+const bgRect = g.append('rect')
+  .attr('width', W).attr('height', H)
+  .attr('fill', 'transparent');
 
-// Simulation
-const simulation = d3.forceSimulation(agents)
-  .force('link', d3.forceLink(links).id(d => d.id).distance(150))
-  .force('charge', d3.forceManyBody().strength(-400))
-  .force('center', d3.forceCenter(width / 2, height / 2))
-  .force('collide', d3.forceCollide(50));
+const linkG = g.append('g');
+const particleG = g.append('g');
+const artifactG = g.append('g');
+const nodeG = g.append('g');
 
-// ── Render ──
-const linkGroup = g.append('g').attr('class', 'links');
-const nodeGroup = g.append('g').attr('class', 'nodes');
+// Zoom
+svg.call(d3.zoom().scaleExtent([0.4, 3]).on('zoom', e => g.attr('transform', e.transform)));
 
-function statusColor(status) {
-  switch (status) {
-    case 'idle': return '#7a9ab5';
-    case 'proposing': return '#c4956a';
-    case 'executing': return '#8aba8a';
-    case 'reviewing': return '#9a7ab5';
-    default: return '#777777';
-  }
-}
+// Force simulation
+const sim = d3.forceSimulation(agents)
+  .force('charge', d3.forceManyBody().strength(-500))
+  .force('center', d3.forceCenter(W / 2, H / 2))
+  .force('collide', d3.forceCollide(60))
+  .force('x', d3.forceX(W / 2).strength(0.03))
+  .force('y', d3.forceY(H / 2).strength(0.03))
+  .alphaDecay(0.008)
+  .on('tick', tick);
 
-function standingWidth(standing) {
-  switch (standing) {
-    case 'enrolled': return 1;
-    case 'contributor': return 2;
-    case 'steward': return 3;
-    case 'principal': return 4;
-    default: return 1;
-  }
-}
+// Drag
+const drag = d3.drag()
+  .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+  .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+  .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; });
 
-function workColor(type) {
-  switch (type) {
-    case 'A': return '#ffffff';
-    case 'B': return '#c4956a';
-    case 'C': return '#b57a7a';
-    default: return '#777777';
-  }
-}
-
-function render() {
+// ── Render functions ──
+function tick() {
   // Links
-  const link = linkGroup.selectAll('line')
-    .data(links)
+  linkG.selectAll('line').data(links, d => d.id)
     .join('line')
-    .attr('stroke', d => workColor(d.type))
-    .attr('stroke-width', d => activeWork.has(d.type) ? 2 : 0.5)
-    .attr('stroke-opacity', d => activeWork.has(d.type) ? 0.6 : 0.2);
+    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x).attr('y2', d => d.target.y)
+    .attr('stroke', d => activeWork.has(d.work) ? WORK_COLORS[d.work] : '#222')
+    .attr('stroke-width', d => activeWork.has(d.work) ? (d.work === 'C' ? 2.5 : 1.8) : 0.5)
+    .attr('stroke-opacity', d => activeWork.has(d.work) ? 0.5 : 0.15)
+    .attr('stroke-dasharray', d => d.work === 'C' ? '6,4' : 'none');
 
   // Nodes
-  const node = nodeGroup.selectAll('g')
-    .data(agents)
-    .join('g')
-    .call(d3.drag()
-      .on('start', dragstarted)
-      .on('drag', dragged)
-      .on('end', dragended));
+  const node = nodeG.selectAll('g.agent').data(agents, d => d.id)
+    .join(enter => {
+      const g = enter.append('g').attr('class', 'agent').call(drag);
+      // Standing halo (T dimension)
+      g.append('circle').attr('class', 'halo');
+      // Main circle
+      g.append('circle').attr('class', 'core');
+      // Initials
+      g.append('text').attr('class', 'initials')
+        .attr('dy', 4).attr('text-anchor', 'middle')
+        .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '11px')
+        .attr('font-weight', 500).attr('fill', '#0a0a0a');
+      // Name
+      g.append('text').attr('class', 'name-label')
+        .attr('dy', 42).attr('text-anchor', 'middle')
+        .attr('font-family', 'Cormorant, serif').attr('font-size', '13px')
+        .attr('fill', '#c8c2ba');
+      // Craft label
+      g.append('text').attr('class', 'craft-label')
+        .attr('dy', 56).attr('text-anchor', 'middle')
+        .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '9px')
+        .attr('fill', '#555');
+      return g;
+    });
 
-  node.selectAll('*').remove();
+  node.attr('transform', d => `translate(${d.x},${d.y})`);
 
-  // Circle
-  node.append('circle')
-    .attr('r', d => 20 + d.capacity / 5)
-    .attr('fill', d => statusColor(d.status))
-    .attr('stroke', '#ece6de')
-    .attr('stroke-width', d => activeLayers.has('T') ? standingWidth(d.standing) : 1)
-    .attr('opacity', 0.9);
+  const r = d => 18 + d.capacity / 6;
 
-  // Label
-  node.append('text')
-    .attr('dy', 4)
-    .attr('text-anchor', 'middle')
-    .attr('font-family', 'IBM Plex Mono, monospace')
-    .attr('font-size', '12px')
-    .attr('fill', '#0a0a0a')
-    .attr('font-weight', '500')
-    .text(d => d.name.slice(0, 2).toUpperCase());
+  node.select('.halo')
+    .attr('r', d => r(d) + 6)
+    .attr('fill', 'none')
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', d => activeDims.has('T') ? STANDING_RADIUS[d.standing] : 0)
+    .attr('stroke-opacity', 0.3);
 
-  // Name below
-  node.append('text')
-    .attr('dy', 45)
-    .attr('text-anchor', 'middle')
-    .attr('font-family', 'Cormorant, serif')
-    .attr('font-size', '14px')
-    .attr('fill', '#c8c2ba')
-    .text(d => d.name);
+  node.select('.core')
+    .attr('r', r)
+    .attr('fill', d => STATUS_COLORS[d.status] || STATUS_COLORS.idle)
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', 1.5)
+    .attr('opacity', d => d.status === 'dormant' ? 0.4 : 0.9)
+    .attr('filter', d => d.status === 'executing' || d.status === 'sensing' ? 'url(#glow)' : 'none');
 
-  simulation.on('tick', () => {
-    link
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
+  node.select('.initials').text(d => d.name.slice(0, 2).toUpperCase());
+  node.select('.name-label').text(d => d.name);
+  node.select('.craft-label')
+    .text(d => activeDims.has('M') ? d.craft.join(' × ') : '')
+    .attr('fill', '#555');
 
-    node.attr('transform', d => `translate(${d.x},${d.y})`);
-  });
+  // Particles
+  particleG.selectAll('circle.particle').data(particles, d => d.id)
+    .join(
+      enter => enter.append('circle').attr('class', 'particle').attr('r', 3).attr('opacity', 0.9),
+      update => update,
+      exit => exit.remove()
+    )
+    .attr('cx', d => d.x).attr('cy', d => d.y)
+    .attr('fill', d => activeDims.has('L') ? d.color : '#333')
+    .attr('r', d => d.type === 'completion' ? 4 : 3)
+    .attr('opacity', d => activeDims.has('L') ? 0.9 : 0.3);
+
+  // Sprint artifacts (A dimension)
+  if (activeDims.has('A')) {
+    artifactG.selectAll('g.artifact').data(sprintArtifacts, d => d.id)
+      .join(enter => {
+        const ag = enter.append('g').attr('class', 'artifact');
+        ag.append('rect').attr('rx', 3).attr('ry', 3)
+          .attr('fill', '#1a1a1a').attr('stroke', '#333').attr('stroke-width', 0.5);
+        ag.append('text').attr('class', 'art-title')
+          .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '8px')
+          .attr('fill', '#888').attr('x', 6).attr('y', 12);
+        ag.append('g').attr('class', 'art-layers');
+        return ag;
+      })
+      .each(function(d) {
+        const agent = agents.find(a => a.id === d.agentId);
+        if (!agent) return;
+        const angle = d.orbitAngle + simTime * 0.02;
+        const ox = agent.x + Math.cos(angle) * 55;
+        const oy = agent.y + Math.sin(angle) * 55;
+        d3.select(this).attr('transform', `translate(${ox - 50},${oy - 10})`);
+        d3.select(this).select('rect').attr('width', 100).attr('height', 20);
+        d3.select(this).select('.art-title').text(d.title.slice(0, 16));
+        // Layer dots
+        if (activeDims.has('M')) {
+          const layerG = d3.select(this).select('.art-layers');
+          layerG.selectAll('circle').data(d.layers)
+            .join('circle')
+            .attr('cx', (l, i) => 6 + i * 10).attr('cy', 18)
+            .attr('r', 3).attr('fill', l => LAYER_COLORS[l] || '#555');
+        }
+      });
+  } else {
+    artifactG.selectAll('g.artifact').remove();
+  }
 }
 
-function dragstarted(event, d) {
-  if (!event.active) simulation.alphaTarget(0.3).restart();
-  d.fx = d.x;
-  d.fy = d.y;
+// ── Event Log ──
+const logEl = document.getElementById('event-log');
+function logEvent(agentId, phase, message) {
+  const agent = agents.find(a => a.id === agentId);
+  const cls = agentId;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-phase">${phase}</span> <span class="log-agent ${cls}">${agent?.name || agentId}</span> ${message}`;
+  logEl.prepend(entry);
+  if (logEl.children.length > 20) logEl.lastChild.remove();
 }
 
-function dragged(event, d) {
-  d.fx = event.x;
-  d.fy = event.y;
+// ── Ecological Pulse ──
+function renderEcoSignals() {
+  const el = document.getElementById('eco-signals');
+  el.innerHTML = ECO_SIGNALS.map(s =>
+    `<div class="eco-signal"><span class="eco-dot eco-${s.status}"></span>${s.name}: ${s.value} ${s.trend}</div>`
+  ).join('');
 }
 
-function dragended(event, d) {
-  if (!event.active) simulation.alphaTarget(0);
-  d.fx = null;
-  d.fy = null;
+// ── Particle Animation ──
+let particleId = 0;
+function spawnParticle(sourceId, targetId, color, type) {
+  const s = agents.find(a => a.id === sourceId);
+  const t = agents.find(a => a.id === targetId);
+  if (!s || !t) return;
+  const p = {
+    id: ++particleId, x: s.x, y: s.y,
+    sx: s.x, sy: s.y, tx: t.x, ty: t.y,
+    progress: 0, speed: 0.02 + Math.random() * 0.015,
+    color, type
+  };
+  particles.push(p);
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    // Re-read target positions (agents move)
+    const t = agents.find(a => {
+      const link = links.find(l =>
+        (l.source.id === agents.find(aa => aa.x === p.sx && aa.y === p.sy)?.id && l.target.id === a.id) ||
+        (l.target.id === agents.find(aa => aa.x === p.sx && aa.y === p.sy)?.id && l.source.id === a.id)
+      );
+      return link;
+    });
+    p.progress += p.speed;
+    p.x = p.sx + (p.tx - p.sx) * p.progress;
+    p.y = p.sy + (p.ty - p.sy) * p.progress;
+    if (p.progress >= 1) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// ── Scenario Engine ──
+let eventQueue = [];
+let nextEventTime = 3;
+let sprintIdCounter = 0;
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function findAgentForCraft(crafts, excludeId) {
+  const matches = agents.filter(a => a.id !== excludeId && a.status !== 'executing' && crafts.some(c => a.craft.includes(c)));
+  return matches.length ? pickRandom(matches) : pickRandom(agents.filter(a => a.id !== excludeId));
+}
+
+function scheduleNextEvent() {
+  const delay = 4 + Math.random() * 8; // 4-12 seconds between events
+  nextEventTime = simTime + delay;
+}
+
+function generateEvent() {
+  const roll = Math.random();
+
+  if (roll < 0.15 && activeSprints.length > 0) {
+    // Complete a sprint
+    const sprint = activeSprints.shift();
+    const agent = agents.find(a => a.id === sprint.executorId);
+    if (agent) {
+      agent.status = 'idle';
+      agent.currentSprint = null;
+    }
+    sprintArtifacts = sprintArtifacts.filter(a => a.id !== sprint.id);
+    // Remove link
+    links = links.filter(l => l.sprintId !== sprint.id);
+    sim.force('link', d3.forceLink(links).id(d => d.id).distance(160));
+    sim.alpha(0.2).restart();
+    logEvent(sprint.executorId, 'synthesis', `completed "${sprint.title}" — proof committed`);
+    // Completion burst particles
+    agents.forEach(a => { if (a.id !== sprint.executorId) spawnParticle(sprint.executorId, a.id, '#8aba8a', 'completion'); });
+    // Update roadmap
+    const fill = Math.min(95, 35 + activeSprints.length * 3 + Math.random() * 10);
+    document.getElementById('roadmap-fill').style.width = fill + '%';
+    return;
+  }
+
+  if (roll < 0.35) {
+    // Heartbeat / sensing
+    const agent = pickRandom(agents);
+    agent.status = 'sensing';
+    setTimeout(() => { if (agent.status === 'sensing') agent.status = 'idle'; }, 3000);
+    logEvent(agent.id, 'discovery', `heartbeat — ${agent.archetype}, capacity ${agent.capacity}%, ${agent.craft.join(' × ')}`);
+    // Sometimes mutate eco signals
+    if (Math.random() < 0.3) {
+      const sig = pickRandom(ECO_SIGNALS);
+      const trends = ['↑', '↓', '—'];
+      sig.trend = pickRandom(trends);
+      if (Math.random() < 0.2) sig.status = pickRandom(['normal', 'watch', 'alert']);
+      renderEcoSignals();
+      if (sig.status === 'alert') {
+        logEvent(agent.id, 'sensing', `ecological alert: ${sig.name} — ${sig.value} ${sig.trend}`);
+      }
+    }
+    return;
+  }
+
+  if (roll < 0.55 && activeSprints.length < 4) {
+    // Propose + claim a sprint
+    const template = pickRandom(SPRINT_POOL);
+    const proposer = findAgentForCraft(template.crafts);
+    const executor = findAgentForCraft(template.crafts, proposer.id);
+    const sprintId = 's' + (++sprintIdCounter);
+
+    proposer.status = 'proposing';
+    logEvent(proposer.id, 'proposal', `"${template.title}" — triggered by: ${template.trigger}`);
+
+    setTimeout(() => {
+      proposer.status = 'idle';
+      executor.status = 'executing';
+      executor.currentSprint = sprintId;
+
+      const sprint = { id: sprintId, title: template.title, executorId: executor.id, proposerId: proposer.id, work: template.work, layers: template.layers };
+      activeSprints.push(sprint);
+
+      // Add link
+      const link = { id: 'l-' + sprintId, source: proposer, target: executor, work: template.work, sprintId };
+      links.push(link);
+      sim.force('link', d3.forceLink(links).id(d => d.id).distance(160));
+      sim.alpha(0.3).restart();
+
+      // Sprint artifact
+      sprintArtifacts.push({ id: sprintId, title: template.title, agentId: executor.id, layers: template.layers, orbitAngle: Math.random() * Math.PI * 2 });
+
+      logEvent(executor.id, 'negotiation', `claimed "${template.title}" — executing`);
+      spawnParticle(proposer.id, executor.id, WORK_COLORS[template.work], 'claim');
+    }, 2000);
+    return;
+  }
+
+  if (activeSprints.length > 0) {
+    // Progress update
+    const sprint = pickRandom(activeSprints);
+    const agent = agents.find(a => a.id === sprint.executorId);
+    if (agent) {
+      logEvent(agent.id, 'execution', `progress on "${sprint.title}"`);
+      // Send particle to proposer
+      spawnParticle(sprint.executorId, sprint.proposerId, WORK_COLORS[sprint.work], 'progress');
+    }
+    return;
+  }
+
+  // Default: heartbeat
+  const agent = pickRandom(agents);
+  logEvent(agent.id, 'discovery', `heartbeat — scanning ecological signals`);
+}
+
+// ── Solar Cycle (S dimension) ──
+function updateSolarCycle() {
+  if (!activeDims.has('S')) {
+    bgRect.attr('fill', 'transparent');
+    return;
+  }
+  // Simulate day/night cycle over ~120 seconds
+  const cycle = (simTime % 120) / 120;
+  let r, g, b, a;
+  if (cycle < 0.2) { // night → dawn
+    const t = cycle / 0.2;
+    r = Math.floor(15 + t * 20); g = Math.floor(10 + t * 10); b = Math.floor(10 + t * 5);
+    a = 0.3 - t * 0.15;
+  } else if (cycle < 0.4) { // dawn → day
+    const t = (cycle - 0.2) / 0.2;
+    r = Math.floor(35 - t * 20); g = Math.floor(20 - t * 10); b = Math.floor(15 - t * 5);
+    a = 0.15 - t * 0.1;
+  } else if (cycle < 0.7) { // day
+    r = 15; g = 12; b = 10; a = 0.05;
+  } else if (cycle < 0.85) { // day → dusk
+    const t = (cycle - 0.7) / 0.15;
+    r = Math.floor(15 + t * 25); g = Math.floor(12 + t * 8); b = 10;
+    a = 0.05 + t * 0.15;
+  } else { // dusk → night
+    const t = (cycle - 0.85) / 0.15;
+    r = Math.floor(40 - t * 25); g = Math.floor(20 - t * 10); b = Math.floor(10);
+    a = 0.2 + t * 0.1;
+  }
+  bgRect.attr('fill', `rgba(${r},${g},${b},${a})`);
+}
+
+// ── Main Loop ──
+let lastTime = performance.now();
+
+function mainLoop(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+  simTime += dt;
+
+  // Clock display
+  const mins = Math.floor(simTime / 60);
+  const secs = Math.floor(simTime % 60);
+  document.getElementById('sim-clock').textContent = `T+${mins}:${secs.toString().padStart(2, '0')}`;
+
+  // Generate events
+  if (simTime >= nextEventTime) {
+    generateEvent();
+    scheduleNextEvent();
+  }
+
+  // Update particles
+  updateParticles();
+
+  // Solar cycle
+  updateSolarCycle();
+
+  // Update meta
+  document.getElementById('meta-sprints').textContent = activeSprints.length;
+  const craftSet = new Set();
+  agents.forEach(a => a.craft.forEach(c => craftSet.add(c)));
+  document.getElementById('meta-crafts').textContent = craftSet.size + '/8';
+
+  requestAnimationFrame(mainLoop);
 }
 
 // ── Controls ──
 document.querySelectorAll('[data-dim]').forEach(btn => {
   btn.addEventListener('click', () => {
     const dim = btn.dataset.dim;
-    if (activeLayers.has(dim)) {
-      activeLayers.delete(dim);
-      btn.classList.remove('active');
-    } else {
-      activeLayers.add(dim);
-      btn.classList.add('active');
-    }
-    render();
+    activeDims.has(dim) ? activeDims.delete(dim) : activeDims.add(dim);
+    btn.classList.toggle('active');
   });
 });
-
 document.querySelectorAll('[data-work]').forEach(btn => {
   btn.addEventListener('click', () => {
     const work = btn.dataset.work;
-    if (activeWork.has(work)) {
-      activeWork.delete(work);
-      btn.classList.remove('active');
-    } else {
-      activeWork.add(work);
-      btn.classList.add('active');
-    }
-    render();
+    activeWork.has(work) ? activeWork.delete(work) : activeWork.add(work);
+    btn.classList.toggle('active');
   });
 });
 
-// ── Update Stats ──
-document.getElementById('agent-count').textContent = agents.length;
-document.getElementById('sprint-count').textContent = sprints.length;
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  const key = e.key.toUpperCase();
+  const dimBtn = document.querySelector(`[data-dim="${key}"]`) || document.querySelector(`[data-dim="${e.key}"]`);
+  if (dimBtn) { dimBtn.click(); return; }
+  const workBtn = document.querySelector(`[data-work="${key}"]`);
+  if (workBtn && !document.querySelector(`[data-dim="${key}"]`)) workBtn.click();
+});
 
-// ── Animate Events ──
-function animateEvent() {
-  // Random agent changes status
-  const agent = agents[Math.floor(Math.random() * agents.length)];
-  const statuses = ['idle', 'proposing', 'executing', 'reviewing'];
-  agent.status = statuses[Math.floor(Math.random() * statuses.length)];
-  render();
-}
-
-setInterval(animateEvent, 5000);
-
-// Initial render
-render();
+// ── Init ──
+renderEcoSignals();
+scheduleNextEvent();
+requestAnimationFrame(mainLoop);
 </script>
 
 </body>
