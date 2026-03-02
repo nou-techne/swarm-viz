@@ -663,6 +663,34 @@ const SPRINT_POOL = [
   { title: 'Swarm protocol v2 — federated floor control', layers: ['Flow', 'Constraint'], work: 'C', crafts: ['Code', 'Water'], phase: 'coordination', trigger: 'Multi-node coordination required' },
 ];
 
+// ── Repositories: shared bodies of work ──
+const REPOS = [
+  { id: 'r-coopus', name: 'co-op.us', desc: 'Participatory identity + Workshop', url: 'https://github.com/Roots-Trust-LCA/co-op.us', commits: 284, contributors: ['nou', 'dianoia'], color: '#c4956a' },
+  { id: 'r-watershed', name: 'watershed-data', desc: 'Sensing layer — USGS, SNOTEL, reservoirs', url: 'https://github.com/nou-techne/watershed-data-collection', commits: 47, contributors: ['nou'], color: '#06b6d4' },
+  { id: 'r-habitat', name: 'the-habitat', desc: 'Economic Habitat Matrix + patronage', url: 'https://github.com/nou-techne/habitat', commits: 91, contributors: ['nou', 'dianoia'], color: '#8aba8a' },
+  { id: 'r-swarmviz', name: 'swarm-viz', desc: 'This visualizer', url: 'https://github.com/nou-techne/swarm-viz', commits: 12, contributors: ['nou'], color: '#9a7ab5' },
+  { id: 'r-noutechne', name: 'nou-techne', desc: 'Journal, thesis, coordination docs', url: 'https://github.com/nou-techne/nou-techne', commits: 156, contributors: ['nou', 'kairos'], color: '#f59e0b' },
+];
+
+// Map sprints to repos they contribute to
+const SPRINT_REPO_MAP = {
+  'SNOTEL anomaly detection pipeline': 'r-watershed',
+  'Watershed governance facilitation protocol': 'r-coopus',
+  'Bioregional financing facility design': 'r-habitat',
+  'Riparian corridor restoration mapping': 'r-watershed',
+  'Cooperative patronage parameterization': 'r-habitat',
+  'Soil moisture sensor network spec': 'r-watershed',
+  'Cross-watershed data federation': 'r-watershed',
+  'Ecological anomaly → proposal pipeline': 'r-coopus',
+  'Agent standing progression review': 'r-coopus',
+  'Contribution rarity recalibration': 'r-habitat',
+  'Workshop Floor ecological signal integration': 'r-coopus',
+  'Bioregional narrative for GG25 round': 'r-noutechne',
+  'Summit coordination infrastructure': 'r-coopus',
+  'Water-energy nexus correlation layer': 'r-watershed',
+  'Swarm protocol v2 — federated floor control': 'r-coopus',
+};
+
 const LAYER_COLORS = {
   Identity: '#6366f1', State: '#10b981', Relationship: '#f59e0b',
   Event: '#ef4444', Flow: '#06b6d4', Constraint: '#64748b', View: '#8b5cf6'
@@ -681,9 +709,17 @@ let sprintArtifacts = [];
 // Clone agents for simulation state
 const agents = AGENTS.map(a => ({
   ...a, status: 'idle', currentSprint: null,
+  nodeType: 'agent',
   x: 0, y: 0, vx: 0, vy: 0
 }));
 
+// Add repos as nodes
+const repos = REPOS.map((r, i) => ({
+  ...r, nodeType: 'repo',
+  x: 0, y: 0, vx: 0, vy: 0
+}));
+
+const allNodes = [...agents, ...repos];
 let links = [];
 
 // ── D3 Setup ──
@@ -715,14 +751,14 @@ const nodeG = g.append('g');
 // Zoom
 svg.call(d3.zoom().scaleExtent([0.4, 3]).on('zoom', e => g.attr('transform', e.transform)));
 
-// Force simulation
-const sim = d3.forceSimulation(agents)
-  .force('charge', d3.forceManyBody().strength(-500))
+// Force simulation — agents + repos
+const sim = d3.forceSimulation(allNodes)
+  .force('charge', d3.forceManyBody().strength(d => d.nodeType === 'repo' ? -300 : -500))
   .force('center', d3.forceCenter(W / 2, H / 2))
-  .force('collide', d3.forceCollide(60))
+  .force('collide', d3.forceCollide(d => d.nodeType === 'repo' ? 45 : 55))
   .force('x', d3.forceX(W / 2).strength(0.03))
   .force('y', d3.forceY(H / 2).strength(0.03))
-  .alphaDecay(0.008)
+  .alphaDecay(0.006)
   .on('tick', tick);
 
 // Drag
@@ -743,25 +779,20 @@ function tick() {
     .attr('stroke-opacity', d => activeWork.has(d.work) ? 0.5 : 0.15)
     .attr('stroke-dasharray', d => d.work === 'C' ? '6,4' : 'none');
 
-  // Nodes
+  // Agent nodes
   const node = nodeG.selectAll('g.agent').data(agents, d => d.id)
     .join(enter => {
       const g = enter.append('g').attr('class', 'agent').call(drag);
-      // Standing halo (T dimension)
       g.append('circle').attr('class', 'halo');
-      // Main circle
       g.append('circle').attr('class', 'core');
-      // Initials
       g.append('text').attr('class', 'initials')
         .attr('dy', 4).attr('text-anchor', 'middle')
         .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '11px')
         .attr('font-weight', 500).attr('fill', '#0a0a0a');
-      // Name
       g.append('text').attr('class', 'name-label')
         .attr('dy', 42).attr('text-anchor', 'middle')
         .attr('font-family', 'Cormorant, serif').attr('font-size', '13px')
         .attr('fill', '#c8c2ba');
-      // Craft label
       g.append('text').attr('class', 'craft-label')
         .attr('dy', 56).attr('text-anchor', 'middle')
         .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '9px')
@@ -770,12 +801,10 @@ function tick() {
     });
 
   node.attr('transform', d => `translate(${d.x},${d.y})`);
-
   const r = d => 18 + d.capacity / 6;
 
   node.select('.halo')
-    .attr('r', d => r(d) + 6)
-    .attr('fill', 'none')
+    .attr('r', d => r(d) + 6).attr('fill', 'none')
     .attr('stroke', d => d.color)
     .attr('stroke-width', d => activeDims.has('T') ? STANDING_RADIUS[d.standing] : 0)
     .attr('stroke-opacity', 0.3);
@@ -783,8 +812,7 @@ function tick() {
   node.select('.core')
     .attr('r', r)
     .attr('fill', d => STATUS_COLORS[d.status] || STATUS_COLORS.idle)
-    .attr('stroke', d => d.color)
-    .attr('stroke-width', 1.5)
+    .attr('stroke', d => d.color).attr('stroke-width', 1.5)
     .attr('opacity', d => d.status === 'dormant' ? 0.4 : 0.9)
     .attr('filter', d => d.status === 'executing' || d.status === 'sensing' ? 'url(#glow)' : 'none');
 
@@ -793,6 +821,63 @@ function tick() {
   node.select('.craft-label')
     .text(d => activeDims.has('M') ? d.craft.join(' × ') : '')
     .attr('fill', '#555');
+
+  // Repo nodes — rounded rectangles
+  const repoNode = nodeG.selectAll('g.repo').data(repos, d => d.id)
+    .join(enter => {
+      const rg = enter.append('g').attr('class', 'repo').call(drag);
+      rg.append('rect').attr('class', 'repo-bg')
+        .attr('rx', 6).attr('ry', 6);
+      rg.append('text').attr('class', 'repo-name')
+        .attr('text-anchor', 'middle')
+        .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '10px')
+        .attr('font-weight', 500);
+      rg.append('text').attr('class', 'repo-commits')
+        .attr('text-anchor', 'middle')
+        .attr('font-family', 'IBM Plex Mono, monospace').attr('font-size', '8px');
+      rg.append('text').attr('class', 'repo-desc')
+        .attr('text-anchor', 'middle')
+        .attr('font-family', 'Source Serif 4, serif').attr('font-size', '9px');
+      // Contributor dots row
+      rg.append('g').attr('class', 'repo-contribs');
+      return rg;
+    });
+
+  repoNode.attr('transform', d => `translate(${d.x},${d.y})`);
+
+  const repoW = 120, repoH = 52;
+  repoNode.select('.repo-bg')
+    .attr('x', -repoW / 2).attr('y', -repoH / 2)
+    .attr('width', repoW).attr('height', repoH)
+    .attr('fill', '#111').attr('stroke', d => d.color)
+    .attr('stroke-width', 1).attr('stroke-opacity', 0.5);
+
+  repoNode.select('.repo-name')
+    .attr('y', -12).attr('fill', d => d.color)
+    .text(d => d.name);
+
+  repoNode.select('.repo-commits')
+    .attr('y', 2).attr('fill', '#777')
+    .text(d => `${d.commits} commits`);
+
+  repoNode.select('.repo-desc')
+    .attr('y', 14).attr('fill', '#555')
+    .text(d => d.desc.length > 22 ? d.desc.slice(0, 20) + '…' : d.desc);
+
+  // Contributor dots
+  repoNode.each(function(d) {
+    const cg = d3.select(this).select('.repo-contribs');
+    const contribs = d.contributors;
+    const dots = cg.selectAll('circle').data(contribs);
+    dots.join('circle')
+      .attr('cx', (c, i) => -((contribs.length - 1) * 7) / 2 + i * 7)
+      .attr('cy', 22)
+      .attr('r', 3)
+      .attr('fill', c => {
+        const a = agents.find(ag => ag.id === c);
+        return a ? a.color : '#555';
+      });
+  });
 
   // Particles
   particleG.selectAll('circle.particle').data(particles, d => d.id)
@@ -864,12 +949,17 @@ function renderEcoSignals() {
 
 // ── Particle Animation ──
 let particleId = 0;
+function findNode(id) {
+  return allNodes.find(n => n.id === id);
+}
+
 function spawnParticle(sourceId, targetId, color, type) {
+  if (!findNode(sourceId) || !findNode(targetId)) return;
   const p = {
     id: ++particleId, x: 0, y: 0,
     sourceId, targetId,
     progress: 0,
-    speed: 0.012 + Math.random() * 0.018,
+    speed: type === 'commit' ? 0.025 : 0.012 + Math.random() * 0.018,
     color, type
   };
   particles.push(p);
@@ -890,8 +980,8 @@ function spawnAmbientParticles() {
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    const src = agents.find(a => a.id === p.sourceId);
-    const tgt = agents.find(a => a.id === p.targetId);
+    const src = findNode(p.sourceId);
+    const tgt = findNode(p.targetId);
     if (!src || !tgt) { particles.splice(i, 1); continue; }
     p.progress += p.speed;
     p.x = src.x + (tgt.x - src.x) * p.progress;
@@ -922,10 +1012,26 @@ function completeSprint(sprint) {
   const agent = agents.find(a => a.id === sprint.executorId);
   if (agent) { agent.status = 'reviewing'; setTimeout(() => { if (agent.status === 'reviewing') agent.status = 'idle'; }, 2000); }
   sprintArtifacts = sprintArtifacts.filter(a => a.id !== sprint.id);
-  links = links.filter(l => l.sprintId !== sprint.id);
+  links = links.filter(l => l.sprintId !== sprint.id); // removes both agent-agent and agent-repo links
   sim.force('link', d3.forceLink(links).id(d => d.id).distance(150));
   sim.alpha(0.15).restart();
-  logEvent(sprint.executorId, 'synthesis', `completed "${sprint.title}" — proof committed`);
+
+  // Grow the target repo
+  const repoId = SPRINT_REPO_MAP[sprint.title];
+  const repo = repos.find(r => r.id === repoId);
+  if (repo) {
+    repo.commits += 1 + Math.floor(Math.random() * 4);
+    if (!repo.contributors.includes(sprint.executorId)) {
+      repo.contributors.push(sprint.executorId);
+    }
+    // Particle burst from agent → repo
+    spawnParticle(sprint.executorId, repo.id, repo.color, 'commit');
+    logEvent(sprint.executorId, 'synthesis', `completed "${sprint.title}" → ${repo.name} (+${1 + Math.floor(Math.random() * 4)} commits)`);
+  } else {
+    logEvent(sprint.executorId, 'synthesis', `completed "${sprint.title}" — proof committed`);
+  }
+
+  // Completion burst to other agents
   agents.forEach(a => { if (a.id !== sprint.executorId) spawnParticle(sprint.executorId, a.id, '#8aba8a', 'completion'); });
   completedCount++;
   const fill = Math.min(95, 30 + completedCount * 5);
@@ -960,11 +1066,17 @@ function proposeSprint() {
 
     const link = { id: 'l-' + sprintId, source: proposer, target: executor, work: template.work, sprintId };
     links.push(link);
+    // Also link executor → target repo
+    const repoId = SPRINT_REPO_MAP[template.title];
+    const repo = repos.find(r => r.id === repoId);
+    if (repo) {
+      links.push({ id: 'lr-' + sprintId, source: executor, target: repo, work: template.work, sprintId });
+    }
     sim.force('link', d3.forceLink(links).id(d => d.id).distance(150));
     sim.alpha(0.2).restart();
 
     sprintArtifacts.push({ id: sprintId, title: template.title, agentId: executor.id, layers: template.layers, orbitAngle: Math.random() * Math.PI * 2 });
-    logEvent(executor.id, 'negotiation', `accepted "${template.title}" — executing`);
+    logEvent(executor.id, 'negotiation', `accepted "${template.title}" → ${repo ? repo.name : '?'} — executing`);
   }, 800);
 }
 
